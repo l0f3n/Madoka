@@ -1,0 +1,23 @@
+
+AlignConsecutiveAssignments: true
+AlignConsecutiveDeclarations: true
+AllowShortBlocksOnASingleLine: Always
+AllowShortCaseLabelsOnASingleLine: true
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+    AfterClass: true
+    AfterStruct: true
+    AfterCaseLabel: true
+    AfterEnum: true
+    AfterFunction: true
+    AfterNamespace: true
+    AfterUnion: true
+    AfterControlStatement: Always
+    BeforeElse: true
+    BeforeWhile: false
+    SplitEmptyFunction: false
+    SplitEmptyRecord: false
+
+IncludeBlocks: Merge
+IndentWidth: 4
