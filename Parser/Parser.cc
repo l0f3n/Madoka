@@ -6,12 +6,15 @@
 #include <stdlib.h>
 #include <string>
 
-Parser::Parser(std::istream &is) : tokenizer{Tokenizer{is}}
+Parser::Parser(std::istream &is)
+    : tokenizer{Tokenizer{is}}, symbolTable{new SymbolTable()}
 {
     tokenizer.tokenize();
 }
 
-Parser::Parser(Tokenizer &tokenizer) : tokenizer{tokenizer} {}
+Parser::Parser(Tokenizer &tokenizer, SymbolTable *symbolTable)
+    : tokenizer{tokenizer}, symbolTable{symbolTable}
+{}
 
 Token Parser::expect(Token::Kind kind)
 {
@@ -118,11 +121,6 @@ AST_BinaryOperation *Parser::parse_expression_tail()
         tokenizer.eat();
         return new AST_Division(nullptr, parse_expression());
     }
-    else if (tokenizer.peek(1).kind == Token::Kind::Exponentiation)
-    {
-        tokenizer.eat();
-        return new AST_Exponentiation(nullptr, parse_expression());
-    }
     else
     {
         return nullptr;
@@ -144,18 +142,26 @@ AST_Expression *Parser::parse_minus_term()
 
 AST_Expression *Parser::parse_term()
 {
-    if (tokenizer.peek(1).kind == Token::Kind::Number)
+
+    if (tokenizer.peek(1).kind == Token::Kind::Integer)
     {
-        return new AST_Number(tokenizer.eat().value);
+        return new AST_Integer(tokenizer.eat().integer_value);
+    }
+    else if (tokenizer.peek(1).kind == Token::Kind::Real)
+    {
+        return new AST_Real(tokenizer.eat().real_value);
     }
     else if (tokenizer.peek(1).kind == Token::Kind::Identifier)
     {
-        AST_Identifier *ident = new AST_Identifier(tokenizer.eat().text);
+        std::string ident_text = tokenizer.eat().text;
+        Symbol     *symbol     = new Symbol(ident_text, 1);
+
+        AST_Identifier *ident = new AST_Identifier(symbol, ident_text);
         AST_Expression *args  = parse_term_tail();
 
         if (args)
         {
-            return new AST_FunctionCall(ident, args);
+            return new AST_FunctionCall(symbol, ident, args);
         }
         else
         {

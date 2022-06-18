@@ -41,8 +41,14 @@ void AST_BinaryOperation::print(std::ostream &os, bool is_left,
     is_left_history.pop_back();
 }
 
-void AST_Number::print(std::ostream &os, bool is_left,
-                       std::vector<bool> is_left_history) const
+void AST_Integer::print(std::ostream &os, bool is_left,
+                        std::vector<bool> is_left_history) const
+{
+    os << indent(is_left_history) << value << std::endl;
+}
+
+void AST_Real::print(std::ostream &os, bool is_left,
+                     std::vector<bool> is_left_history) const
 {
     os << indent(is_left_history) << value << std::endl;
 }

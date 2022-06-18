@@ -9,7 +9,8 @@ struct Token
     enum class Kind
     {
         Identifier,
-        Number,
+        Integer,
+        Real,
 
         Plus,
         Minus,
@@ -27,6 +28,10 @@ struct Token
         End,
     };
 
+    Token();
+    Token(Kind, int, int, int, std::string, long);
+    Token(Kind, int, int, int, std::string, double);
+
     Kind kind;
 
     int line;
@@ -34,7 +39,11 @@ struct Token
     int end_column;
 
     std::string text{""};
-    double value{};
+    union
+    {
+        long   integer_value;
+        double real_value;
+    };
 
     friend std::ostream &operator<<(std::ostream &os, Token const &t);
 };

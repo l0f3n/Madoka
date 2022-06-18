@@ -1,19 +1,22 @@
 #pragma once
 
+#include <SymbolTable/Symbol.h>
 #include <iostream>
 #include <vector>
+
+class Quads;
 
 class AST_Node
 {
   public:
-    void print(std::ostream &os);
     virtual ~AST_Node(){};
 
-    virtual double evaluate(double x) const;
+    std::string indent(std::vector<bool> is_left_history) const;
 
-    virtual void print(std::ostream &os, bool is_left,
-                       std::vector<bool> is_left_history) const;
-    std::string  indent(std::vector<bool> is_left_history) const;
+    void            print(std::ostream &os);
+    virtual void    print(std::ostream &os, bool is_left,
+                          std::vector<bool> is_left_history) const;
+    virtual Symbol *generate_quads(Quads *quads) const;
 };
 
 class AST_Expression : public AST_Node
@@ -22,40 +25,52 @@ class AST_Expression : public AST_Node
 class AST_Identifier : public AST_Expression
 {
   public:
-    AST_Identifier(std::string name);
+    AST_Identifier(Symbol *symbol, std::string name);
 
-    double evaluate(double x) const override;
+    void    print(std::ostream &os, bool is_left,
+                  std::vector<bool> is_left_history) const override;
+    Symbol *generate_quads(Quads *quads) const override;
 
-    void print(std::ostream &os, bool is_left,
-               std::vector<bool> is_left_history) const override;
-
+    Symbol     *symbol;
     std::string name;
 };
 
 class AST_FunctionCall : public AST_Expression
 {
   public:
-    AST_FunctionCall(AST_Identifier *ident, AST_Expression *expr);
+    AST_FunctionCall(Symbol *symbol, AST_Identifier *ident,
+                     AST_Expression *expr);
     ~AST_FunctionCall();
 
-    double evaluate(double x) const override;
+    void    print(std::ostream &os, bool is_left,
+                  std::vector<bool> is_left_history) const override;
+    Symbol *generate_quads(Quads *quads) const override;
 
-    void print(std::ostream &os, bool is_left,
-               std::vector<bool> is_left_history) const override;
-
+    Symbol         *symbol;
     AST_Identifier *ident;
     AST_Expression *expr;
 };
 
-class AST_Number : public AST_Expression
+class AST_Integer : public AST_Expression
 {
   public:
-    AST_Number(double value);
+    AST_Integer(long value);
 
-    double evaluate(double x) const override;
+    void    print(std::ostream &os, bool is_left,
+                  std::vector<bool> is_left_history) const override;
+    Symbol *generate_quads(Quads *quads) const override;
 
-    void print(std::ostream &os, bool is_left,
-               std::vector<bool> is_left_history) const override;
+    long value;
+};
+
+class AST_Real : public AST_Expression
+{
+  public:
+    AST_Real(double value);
+
+    void    print(std::ostream &os, bool is_left,
+                  std::vector<bool> is_left_history) const override;
+    Symbol *generate_quads(Quads *quads) const override;
 
     double value;
 };
@@ -66,10 +81,9 @@ class AST_UnaryMinus : public AST_Expression
     AST_UnaryMinus(AST_Expression *expr);
     ~AST_UnaryMinus();
 
-    double evaluate(double x) const override;
-
-    void print(std::ostream &os, bool is_left,
-               std::vector<bool> is_left_history) const override;
+    void    print(std::ostream &os, bool is_left,
+                  std::vector<bool> is_left_history) const override;
+    Symbol *generate_quads(Quads *quads) const override;
 
     AST_Expression *expr;
 };
@@ -96,7 +110,7 @@ class AST_Plus : public AST_BinaryOperation
   public:
     AST_Plus(AST_Expression *lhs, AST_Expression *rhs);
 
-    double evaluate(double x) const override;
+    Symbol *generate_quads(Quads *quads) const override;
 };
 
 class AST_Minus : public AST_BinaryOperation
@@ -104,7 +118,7 @@ class AST_Minus : public AST_BinaryOperation
   public:
     AST_Minus(AST_Expression *lhs, AST_Expression *rhs);
 
-    double evaluate(double x) const override;
+    Symbol *generate_quads(Quads *quads) const override;
 };
 
 class AST_Multiplication : public AST_BinaryOperation
@@ -112,7 +126,7 @@ class AST_Multiplication : public AST_BinaryOperation
   public:
     AST_Multiplication(AST_Expression *lhs, AST_Expression *rhs);
 
-    double evaluate(double x) const override;
+    Symbol *generate_quads(Quads *quads) const override;
 };
 
 class AST_Division : public AST_BinaryOperation
@@ -120,13 +134,5 @@ class AST_Division : public AST_BinaryOperation
   public:
     AST_Division(AST_Expression *lhs, AST_Expression *rhs);
 
-    double evaluate(double x) const override;
-};
-
-class AST_Exponentiation : public AST_BinaryOperation
-{
-  public:
-    AST_Exponentiation(AST_Expression *lhs, AST_Expression *rhs);
-
-    double evaluate(double x) const override;
+    Symbol *generate_quads(Quads *quads) const override;
 };

@@ -12,7 +12,10 @@ set(
   Parser/Parser.cc
   AST/AST.cc
   AST/Print.cc
-  AST/Evaluate.cc
+  SymbolTable/SymbolTable.cc
+  SymbolTable/Symbol.cc
+  Quads/Quads.cc
+  CodeGenerator/CodeGenerator.cc
 )
 
 set(
@@ -21,6 +24,10 @@ set(
   Tokenizer/Token.h
   Parser/Parser.h
   AST/AST.h
+  SymbolTable/SymbolTable.h
+  SymbolTable/Symbol.h
+  Quads/Quads.h
+  CodeGenerator/CodeGenerator.h
 )
 
 add_executable(madoka ${SOURCES} ${HEADERS})

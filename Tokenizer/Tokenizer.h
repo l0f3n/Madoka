@@ -1,10 +1,9 @@
 #pragma once
 
+#include "Token.h"
 #include <iostream>
 #include <string>
 #include <vector>
-
-#include "Token.h"
 
 class Tokenizer
 {
@@ -28,6 +27,7 @@ class Tokenizer
 
     Token create_token(Token::Kind kind);
     Token create_token(Token::Kind kind, std::string &text);
+    Token create_token(Token::Kind kind, std::string &text, long value);
     Token create_token(Token::Kind kind, std::string &text, double value);
 
     Token tokenize_next_token();
@@ -39,5 +39,5 @@ class Tokenizer
     int begin_column; // The start column of the current token
 
     std::vector<Token> tokens{};
-    int token_index{-1};
+    int                token_index{-1};
 };

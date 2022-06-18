@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AST/AST.h"
+#include "SymbolTable/SymbolTable.h"
 #include "Tokenizer/Tokenizer.h"
 #include <iostream>
 
@@ -8,7 +9,7 @@ class Parser
 {
   public:
     Parser(std::istream &is);
-    Parser(Tokenizer &tokenizer);
+    Parser(Tokenizer &tokenizer, SymbolTable *symbolTable);
 
     AST_Node *parse();
 
@@ -25,5 +26,6 @@ class Parser
 
     AST_BinaryOperation *respect_precedence(AST_BinaryOperation *binop);
 
-    Tokenizer tokenizer;
+    Tokenizer    tokenizer;
+    SymbolTable *symbolTable;
 };

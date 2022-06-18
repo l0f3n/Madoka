@@ -1,5 +1,3 @@
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
-
 #include "Tokenizer.h"
 #include "Token.h"
 #include <iostream>
@@ -143,14 +141,21 @@ bool Tokenizer::is_identifier_char(char c)
     }
 }
 
+// TODO: These constructors look ugly, cleanup
 Token Tokenizer::create_token(Token::Kind kind)
 {
-    return Token{kind, line, begin_column, column - 1};
+    return Token{kind, line, begin_column, column - 1, "", (long)0};
 }
 
+// TODO: These constructors look ugly, cleanup
 Token Tokenizer::create_token(Token::Kind kind, std::string &text)
 {
-    return Token{kind, line, begin_column, column - 1, text};
+    return Token{kind, line, begin_column, column - 1, text, (long)0};
+}
+
+Token Tokenizer::create_token(Token::Kind kind, std::string &text, long value)
+{
+    return Token{kind, line, begin_column, column - 1, text, value};
 }
 
 Token Tokenizer::create_token(Token::Kind kind, std::string &text, double value)
@@ -166,7 +171,11 @@ Token Tokenizer::tokenize_next_token()
 
     switch (peek_next_char())
     {
-    case EOF: column += 1; return create_token(Token::Kind::End);
+    case EOF:
+    {
+        column += 1;
+        return create_token(Token::Kind::End);
+    }
     case '(':
     {
         consume_next_char();
@@ -221,11 +230,11 @@ Token Tokenizer::tokenize_next_token()
             while (is_digit(peek_next_char()))
                 text.push_back(consume_next_char());
 
-            return create_token(Token::Kind::Number, text, std::stof(text));
+            return create_token(Token::Kind::Real, text, std::stod(text));
         }
         else
         {
-            return create_token(Token::Kind::Number, text, std::stof(text));
+            return create_token(Token::Kind::Integer, text, std::stol(text));
         }
     }
     else if (is_identifier_char(peek_next_char()))
