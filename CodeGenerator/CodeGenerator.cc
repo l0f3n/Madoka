@@ -39,15 +39,18 @@ void CodeGenerator::generate_code(Quads *quads, std::ostream &os) const
             load(os, "r8", quad->operand1);
             load(os, "r9", quad->operand2);
 
-            // Add the two values in registers r8 and r9
-            os << "\t add r8, r9" << std::endl;
+            os << "\t"
+               << "add r8, r9" << std::endl;
+
             store(os, quad->dest, "r8");
 
             break;
         }
         case Quad::Operation::I_LOAD:
         {
-            os << "\t mov r8, " << quad->integer_value1 << std::endl;
+            os << "\t"
+               << "mov r8, " << quad->integer_value1 << std::endl;
+
             store(os, quad->dest, "r8");
 
             break;

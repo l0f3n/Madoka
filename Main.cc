@@ -17,6 +17,8 @@ int main(int argc, char **argv)
 
     Parser    parser{tokenizer, &symbolTable};
     AST_Node *root = parser.parse();
+
+    /*
     root->print(std::cout);
     std::cout << std::endl;
 
@@ -30,4 +32,5 @@ int main(int argc, char **argv)
     CodeGenerator code_generator{&symbolTable};
     std::ofstream os{"out.asm"};
     code_generator.generate_code(&quads, os);
+    */
 }

@@ -17,7 +17,26 @@ class Parser
     Token expect(Token::Kind kind);
     void  report_syntax_error_and_stop(std::string message);
 
-    AST_Expression      *parse_start();
+    AST_Node *parse_start();
+
+    AST_Node *parse_statement_list();
+    AST_Node *parse_statement_list_tail();
+    AST_Node *parse_statement();
+    AST_Node *parse_statement_tail();
+
+    AST_Node *parse_optional_return();
+
+    AST_Node *parse_optional_argument_list();
+    AST_Node *parse_argument_list();
+    AST_Node *parse_argument_list_tail();
+    AST_Node *parse_argument();
+
+    AST_Node *parse_optional_parameter_list();
+    AST_Node *parse_parameter_list();
+    AST_Node *parse_parameter_list_tail();
+    AST_Node *parse_parameter();
+
+    // Expressions
     AST_Expression      *parse_expression();
     AST_BinaryOperation *parse_expression_tail();
     AST_Expression      *parse_term();

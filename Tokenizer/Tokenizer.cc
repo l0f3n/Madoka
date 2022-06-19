@@ -41,12 +41,19 @@ void Tokenizer::consume_whitespace()
         {
         case ' ':
         case '\t':
-        case '\r': consume_next_char(); break;
+        case '\r':
+        {
+            consume_next_char();
+            break;
+        }
         case '\n':
+        {
             consume_next_char();
             line++;
             column = 0;
             break;
+        }
+
         default: return;
         }
     }
@@ -176,16 +183,7 @@ Token Tokenizer::tokenize_next_token()
         column += 1;
         return create_token(Token::Kind::End);
     }
-    case '(':
-    {
-        consume_next_char();
-        return create_token(Token::Kind::LeftParentheses);
-    }
-    case ')':
-    {
-        consume_next_char();
-        return create_token(Token::Kind::RightParentheses);
-    }
+
     case '=':
     {
         consume_next_char();
@@ -199,7 +197,16 @@ Token Tokenizer::tokenize_next_token()
     case '-':
     {
         consume_next_char();
-        return create_token(Token::Kind::Minus);
+
+        if (peek_next_char() == '>')
+        {
+            consume_next_char();
+            return create_token(Token::Kind::Arrow);
+        }
+        else
+        {
+            return create_token(Token::Kind::Minus);
+        }
     }
     case '*':
     {
@@ -211,10 +218,45 @@ Token Tokenizer::tokenize_next_token()
         consume_next_char();
         return create_token(Token::Kind::Division);
     }
-    case '^':
+    case '>':
     {
         consume_next_char();
-        return create_token(Token::Kind::Exponentiation);
+        return create_token(Token::Kind::GreaterThan);
+    }
+    case '<':
+    {
+        consume_next_char();
+        return create_token(Token::Kind::LesserThan);
+    }
+    case '(':
+    {
+        consume_next_char();
+        return create_token(Token::Kind::LeftParentheses);
+    }
+    case ')':
+    {
+        consume_next_char();
+        return create_token(Token::Kind::RightParentheses);
+    }
+    case '{':
+    {
+        consume_next_char();
+        return create_token(Token::Kind::LeftCurlyBrace);
+    }
+    case '}':
+    {
+        consume_next_char();
+        return create_token(Token::Kind::RightCurlyBrace);
+    }
+    case ':':
+    {
+        consume_next_char();
+        return create_token(Token::Kind::Colon);
+    }
+    case ',':
+    {
+        consume_next_char();
+        return create_token(Token::Kind::Comma);
     }
     }
 
@@ -243,7 +285,26 @@ Token Tokenizer::tokenize_next_token()
         while (is_identifier_char(peek_next_char()))
             text.push_back(consume_next_char());
 
-        return create_token(Token::Kind::Identifier, text);
+        if (text == "function")
+        {
+            return create_token(Token::Kind::Function);
+        }
+        else if (text == "return")
+        {
+            return create_token(Token::Kind::Return);
+        }
+        else if (text == "if")
+        {
+            return create_token(Token::Kind::If);
+        }
+        else if (text == "while")
+        {
+            return create_token(Token::Kind::While);
+        }
+        else
+        {
+            return create_token(Token::Kind::Identifier, text);
+        }
     }
 
     std::string s(1, consume_next_char());

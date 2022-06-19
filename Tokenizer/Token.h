@@ -12,17 +12,33 @@ struct Token
         Integer,
         Real,
 
+        // Math
         Plus,
         Minus,
         Multiplication,
         Division,
-        Exponentiation,
 
-        Equals,
+        // Comparison
+        GreaterThan,
+        LesserThan,
 
+        // Keywords
+        Function,
+        If,
+        Return,
+        While,
+
+        // Characters
         LeftParentheses,
         RightParentheses,
+        LeftCurlyBrace,
+        RightCurlyBrace,
+        Equals,
+        Comma,
+        Colon,
+        Arrow,
 
+        // Special
         Unitialized,
         Unexpected,
         End,

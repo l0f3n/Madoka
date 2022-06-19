@@ -20,8 +20,8 @@ Token::Token(Kind kind, int line, int begin_column, int end_column,
 
 std::ostream &operator<<(std::ostream &os, Token const &t)
 {
-    os << "Token<" << t.line + 1 << ", " << t.begin_column + 1 << "-"
-       << t.end_column + 1 << ", " << t.kind;
+    os << "Token<" << t.line + 1 << ", " << t.begin_column << "-"
+       << t.end_column << ", " << t.kind;
 
     if (t.text != "")
     {
@@ -44,10 +44,20 @@ std::ostream &operator<<(std::ostream &os, Token::Kind const &k)
     case Token::Kind::Minus: return os << "Minus";
     case Token::Kind::Multiplication: return os << "Multiplication";
     case Token::Kind::Division: return os << "Division";
-    case Token::Kind::Exponentiation: return os << "Exponentiation";
+    case Token::Kind::GreaterThan: return os << "GreaterThan";
+    case Token::Kind::LesserThan: return os << "LesserThan";
     case Token::Kind::Equals: return os << "Equals";
+    case Token::Kind::Function: return os << "Function";
+    case Token::Kind::Return: return os << "Return";
+    case Token::Kind::If: return os << "If";
+    case Token::Kind::While: return os << "While";
     case Token::Kind::LeftParentheses: return os << "LeftParentheses";
     case Token::Kind::RightParentheses: return os << "RightParentheses";
+    case Token::Kind::LeftCurlyBrace: return os << "LeftCurlyBrace";
+    case Token::Kind::RightCurlyBrace: return os << "RightCurlyBrace";
+    case Token::Kind::Colon: return os << "Colon";
+    case Token::Kind::Comma: return os << "Comma";
+    case Token::Kind::Arrow: return os << "Arrow";
     case Token::Kind::End: return os << "End";
     default: return os << "Unexpected";
     }

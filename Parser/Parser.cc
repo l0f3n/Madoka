@@ -38,8 +38,7 @@ Token Parser::expect(Token::Kind kind)
 void Parser::report_syntax_error_and_stop(std::string message)
 {
     std::cout << "SyntaxError:" << tokenizer.peek(1).line + 1 << ","
-              << tokenizer.peek(1).begin_column + 1 << ": " << message
-              << std::endl;
+              << tokenizer.peek(1).begin_column << ": " << message << std::endl;
     std::exit(1);
 }
 
@@ -81,7 +80,304 @@ AST_Node *Parser::parse()
     return expr;
 }
 
-AST_Expression *Parser::parse_start() { return parse_expression(); }
+AST_Node *Parser::parse_start() { return parse_statement_list(); }
+
+AST_Node *Parser::parse_statement_list()
+{
+    parse_statement();
+    parse_statement_list_tail();
+    return nullptr;
+}
+
+AST_Node *Parser::parse_statement_list_tail()
+{
+    // TODO: Do this a better way. Statement assumes that it will always succeed
+    // when parsing but here its fine if it fails. So we need to check here if
+    // its going to succeed, which is kinda ugly.
+
+    switch (tokenizer.peek(1).kind)
+    {
+    case Token::Kind::Identifier:
+    case Token::Kind::Return:
+    case Token::Kind::Function:
+    case Token::Kind::LeftCurlyBrace:
+    case Token::Kind::If:
+    case Token::Kind::While:
+    {
+        return parse_statement_list();
+    }
+    default:
+    {
+        return nullptr;
+    }
+    }
+}
+
+AST_Node *Parser::parse_statement()
+{
+    switch (tokenizer.peek(1).kind)
+    {
+    case Token::Kind::Identifier:
+    {
+        tokenizer.eat();
+
+        parse_statement_tail();
+
+        // TODO: Return proper value
+        return nullptr;
+    }
+    case Token::Kind::Return:
+    {
+        tokenizer.eat();
+        // TODO: Return proper value
+
+        parse_optional_argument_list();
+
+        return nullptr;
+    }
+    case Token::Kind::Function:
+    {
+        tokenizer.eat();
+
+        // TODO: Handle identifier
+        tokenizer.eat();
+
+        expect(Token::Kind::LeftParentheses);
+
+        parse_optional_parameter_list();
+
+        expect(Token::Kind::RightParentheses);
+
+        parse_optional_return();
+
+        expect(Token::Kind::LeftCurlyBrace);
+
+        // TODO: Should we allow empty functions bodies?
+        parse_statement_list();
+
+        expect(Token::Kind::RightCurlyBrace);
+
+        // TODO: Return proper value
+        return nullptr;
+    }
+    case Token::Kind::If:
+    {
+        tokenizer.eat();
+
+        expect(Token::Kind::LeftParentheses);
+
+        parse_expression();
+
+        expect(Token::Kind::RightParentheses);
+
+        expect(Token::Kind::LeftCurlyBrace);
+
+        parse_statement_list();
+
+        expect(Token::Kind::RightCurlyBrace);
+
+        // TODO: Return proper value
+        return nullptr;
+    }
+    case Token::Kind::While:
+    {
+        tokenizer.eat();
+
+        expect(Token::Kind::LeftParentheses);
+
+        parse_expression();
+
+        expect(Token::Kind::RightParentheses);
+
+        expect(Token::Kind::LeftCurlyBrace);
+
+        parse_statement_list();
+
+        expect(Token::Kind::RightCurlyBrace);
+
+        // TODO: Return proper value
+        return nullptr;
+    }
+    default:
+    {
+        report_syntax_error_and_stop("Failed to parse statement");
+        return nullptr;
+    }
+    }
+}
+
+AST_Node *Parser::parse_statement_tail()
+{
+    switch (tokenizer.peek(1).kind)
+    {
+    case Token::Kind::Colon:
+    {
+        tokenizer.eat();
+
+        // TODO: Handle identifier
+        tokenizer.eat();
+
+        expect(Token::Kind::Equals);
+
+        parse_expression();
+
+        // TODO: Return proper value
+        return nullptr;
+    }
+    case Token::Kind::Equals:
+    {
+        tokenizer.eat();
+
+        parse_expression();
+
+        // TODO: Return proper value
+        return nullptr;
+    }
+    case Token::Kind::LeftParentheses:
+    {
+        tokenizer.eat();
+
+        parse_optional_argument_list();
+
+        expect(Token::Kind::RightParentheses);
+
+        // TODO: Return proper value
+        return nullptr;
+    }
+    default:
+    {
+        report_syntax_error_and_stop("Failed to parse statement tail");
+        return nullptr;
+    }
+    }
+}
+
+AST_Node *Parser::parse_optional_return()
+{
+    if (tokenizer.peek(1).kind == Token::Kind::Arrow)
+    {
+        tokenizer.eat();
+
+        expect(Token::Kind::LeftParentheses);
+
+        parse_parameter_list();
+
+        expect(Token::Kind::RightParentheses);
+
+        // TODO: Return proper value
+        return nullptr;
+    }
+    else
+    {
+        return nullptr;
+    }
+}
+
+AST_Node *Parser::parse_optional_argument_list()
+{
+    // TODO: This is the same ugly hack as we did above
+    switch (tokenizer.peek(1).kind)
+    {
+    case Token::Kind::Minus:
+    case Token::Kind::Integer:
+    case Token::Kind::Real:
+    case Token::Kind::Identifier:
+    case Token::Kind::LeftParentheses:
+    {
+        parse_argument_list();
+
+        // TODO: Return proper value
+        return nullptr;
+    }
+    default:
+    {
+        return nullptr;
+    }
+    }
+}
+
+AST_Node *Parser::parse_argument_list()
+{
+    parse_argument();
+    parse_argument_list_tail();
+
+    // TODO: Return proper value
+    return nullptr;
+}
+
+AST_Node *Parser::parse_argument_list_tail()
+{
+    if (tokenizer.peek(1).kind == Token::Kind::Comma)
+    {
+        tokenizer.eat();
+
+        parse_argument_list();
+
+        // TODO: Return proper value
+        return nullptr;
+    }
+    else
+    {
+        return nullptr;
+    }
+}
+
+AST_Node *Parser::parse_argument() { return parse_expression(); }
+
+AST_Node *Parser::parse_optional_parameter_list()
+{
+    // TODO: Same hack for the third time
+    if (tokenizer.peek(1).kind == Token::Kind::Identifier)
+    {
+        parse_parameter_list();
+
+        // TODO: Return proper value
+        return nullptr;
+    }
+    else
+    {
+        return nullptr;
+    }
+}
+
+AST_Node *Parser::parse_parameter_list()
+{
+    parse_parameter();
+    parse_parameter_list_tail();
+
+    // TODO: Return proper value
+    return nullptr;
+}
+
+AST_Node *Parser::parse_parameter_list_tail()
+{
+    if (tokenizer.peek(1).kind == Token::Kind::Comma)
+    {
+        tokenizer.eat();
+        parse_parameter_list();
+
+        // TODO: Return proper value
+        return nullptr;
+    }
+    else
+    {
+        return nullptr;
+    }
+}
+
+AST_Node *Parser::parse_parameter()
+{
+    // TODO: Handle identifier
+    tokenizer.eat();
+
+    expect(Token::Kind::Colon);
+
+    // TODO: Handle identifier
+    tokenizer.eat();
+
+    // TODO: Return proper value
+    return nullptr;
+}
 
 AST_Expression *Parser::parse_expression()
 {
@@ -101,29 +397,51 @@ AST_Expression *Parser::parse_expression()
 
 AST_BinaryOperation *Parser::parse_expression_tail()
 {
-    if (tokenizer.peek(1).kind == Token::Kind::Plus)
+
+    switch (tokenizer.peek(1).kind)
+    {
+    case Token::Kind::Plus:
     {
         tokenizer.eat();
         return new AST_Plus(nullptr, parse_expression());
     }
-    else if (tokenizer.peek(1).kind == Token::Kind::Minus)
+    case Token::Kind::Minus:
     {
         tokenizer.eat();
         return new AST_Minus(nullptr, parse_expression());
     }
-    else if (tokenizer.peek(1).kind == Token::Kind::Multiplication)
+    case Token::Kind::Multiplication:
     {
         tokenizer.eat();
         return new AST_Multiplication(nullptr, parse_expression());
     }
-    else if (tokenizer.peek(1).kind == Token::Kind::Division)
+    case Token::Kind::Division:
     {
         tokenizer.eat();
         return new AST_Division(nullptr, parse_expression());
     }
-    else
+    case Token::Kind::LesserThan:
+    {
+        tokenizer.eat();
+
+        parse_expression();
+
+        // TODO: Return proper value
+        return nullptr;
+    }
+    case Token::Kind::GreaterThan:
+    {
+        tokenizer.eat();
+
+        parse_expression();
+
+        // TODO: Return proper value
+        return nullptr;
+    }
+    default:
     {
         return nullptr;
+    }
     }
 }
 
@@ -154,7 +472,8 @@ AST_Expression *Parser::parse_term()
     else if (tokenizer.peek(1).kind == Token::Kind::Identifier)
     {
         std::string ident_text = tokenizer.eat().text;
-        Symbol     *symbol     = new Symbol(ident_text, 1);
+
+        Symbol *symbol = new Symbol(ident_text, 1);
 
         AST_Identifier *ident = new AST_Identifier(symbol, ident_text);
         AST_Expression *args  = parse_term_tail();
@@ -187,7 +506,11 @@ AST_Expression *Parser::parse_term_tail()
     if (tokenizer.peek(1).kind == Token::Kind::LeftParentheses)
     {
         expect(Token::Kind::LeftParentheses);
+
+        // TODO: Insted use:   parse_optional_argument_list() and return proper
+        // value
         AST_Expression *expr = parse_expression();
+
         expect(Token::Kind::RightParentheses);
 
         if (expr)
