@@ -1,6 +1,6 @@
 #include "Symbol.h"
 
-Symbol::Symbol(std::string name, int type) : name{name}, type{type} {}
+Symbol::Symbol(std::string name, std::string type) : name{name}, type{type} {}
 
 std::ostream &operator<<(std::ostream &os, Symbol &symbol)
 {

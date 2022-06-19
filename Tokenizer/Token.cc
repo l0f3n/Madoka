@@ -20,8 +20,18 @@ Token::Token(Kind kind, int line, int begin_column, int end_column,
 
 std::ostream &operator<<(std::ostream &os, Token const &t)
 {
-    os << "Token<" << t.line + 1 << ", " << t.begin_column << "-"
-       << t.end_column << ", " << t.kind;
+    os << "Token<" << t.line + 1 << ", ";
+
+    if (t.begin_column != t.end_column)
+    {
+        os << t.begin_column << "-" << t.end_column;
+    }
+    else
+    {
+        os << t.begin_column;
+    }
+
+    os << ", " << t.kind;
 
     if (t.text != "")
     {

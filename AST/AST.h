@@ -5,6 +5,10 @@
 #include <vector>
 
 class Quads;
+class AST_Identifier;
+class AST_Expression;
+class AST_ExpressionList;
+class AST_StatementList;
 
 class AST_Node
 {
@@ -19,7 +23,118 @@ class AST_Node
     virtual Symbol *generate_quads(Quads *quads) const;
 };
 
-class AST_Expression : public AST_Node
+class AST_ParameterList : public AST_Node
+{
+  public:
+    AST_ParameterList(AST_Identifier *last_parameter);
+    ~AST_ParameterList();
+
+    void print(std::ostream &os, bool is_left,
+               std::vector<bool> is_left_history) const override;
+    void add_parameter(AST_Identifier *parameter);
+
+    std::vector<AST_Identifier *> parameters;
+};
+
+class AST_Statement : virtual public AST_Node
+{};
+
+class AST_If : public AST_Statement
+{
+  public:
+    AST_If(AST_Expression *, AST_StatementList *);
+    ~AST_If();
+
+    void print(std::ostream &os, bool is_left,
+               std::vector<bool> is_left_history) const override;
+
+    AST_Expression    *condition;
+    AST_StatementList *body;
+};
+
+class AST_Return : public AST_Statement
+{
+  public:
+    AST_Return(AST_ExpressionList *);
+    ~AST_Return();
+
+    void print(std::ostream &os, bool is_left,
+               std::vector<bool> is_left_history) const override;
+
+    AST_ExpressionList *return_values;
+};
+
+class AST_VariableDefinition : public AST_Statement
+{
+  public:
+    AST_VariableDefinition(AST_Identifier *, AST_Expression *);
+    ~AST_VariableDefinition();
+
+    void print(std::ostream &os, bool is_left,
+               std::vector<bool> is_left_history) const override;
+
+    AST_Identifier *lhs;
+    AST_Expression *rhs;
+};
+
+class AST_VariableAssignment : public AST_Statement
+{
+  public:
+    AST_VariableAssignment(AST_Identifier *, AST_Expression *);
+    ~AST_VariableAssignment();
+
+    void print(std::ostream &os, bool is_left,
+               std::vector<bool> is_left_history) const override;
+
+    AST_Identifier *lhs;
+    AST_Expression *rhs;
+};
+
+class AST_ExpressionList : public AST_Node
+{
+  public:
+    AST_ExpressionList(AST_Expression *last_statement);
+    ~AST_ExpressionList();
+
+    void print(std::ostream &os, bool is_left,
+               std::vector<bool> is_left_history) const override;
+
+    void add_expression(AST_Expression *expression);
+
+    std::vector<AST_Expression *> expressions;
+};
+
+class AST_StatementList : public AST_Statement
+{
+  public:
+    AST_StatementList(AST_Statement *last_statement);
+    ~AST_StatementList();
+
+    void print(std::ostream &os, bool is_left,
+               std::vector<bool> is_left_history) const override;
+
+    void add_statement(AST_Statement *statement);
+
+    std::vector<AST_Statement *> statements;
+};
+
+class AST_FunctionDefinition : public AST_Statement
+{
+  public:
+    AST_FunctionDefinition(AST_Identifier *, AST_ParameterList *,
+                           AST_ParameterList *, AST_StatementList *);
+    ~AST_FunctionDefinition();
+
+    void print(std::ostream &os, bool is_left,
+               std::vector<bool> is_left_history) const override;
+
+    AST_Identifier    *name;
+    AST_ParameterList *parameter_list;
+    AST_ParameterList *return_values;
+    AST_StatementList *body;
+};
+
+class AST_Expression : virtual public AST_Node
 {};
 
 class AST_Identifier : public AST_Expression
@@ -35,20 +150,18 @@ class AST_Identifier : public AST_Expression
     std::string name;
 };
 
-class AST_FunctionCall : public AST_Expression
+class AST_FunctionCall : public AST_Expression, public AST_Statement
 {
   public:
-    AST_FunctionCall(Symbol *symbol, AST_Identifier *ident,
-                     AST_Expression *expr);
+    AST_FunctionCall(AST_Identifier *, AST_ExpressionList *);
     ~AST_FunctionCall();
 
     void    print(std::ostream &os, bool is_left,
                   std::vector<bool> is_left_history) const override;
     Symbol *generate_quads(Quads *quads) const override;
 
-    Symbol         *symbol;
-    AST_Identifier *ident;
-    AST_Expression *expr;
+    AST_Identifier     *ident;
+    AST_ExpressionList *arguments;
 };
 
 class AST_Integer : public AST_Expression

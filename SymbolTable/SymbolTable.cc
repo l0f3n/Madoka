@@ -31,7 +31,7 @@ Symbol *SymbolTable::find_symbol(std::string name)
 
 Symbol *SymbolTable::generate_temporary_variable()
 {
-    Symbol *temp = new Symbol(std::to_string(1), 1);
+    Symbol *temp = new Symbol(std::to_string(1), "Unknown");
     add_symbol(temp);
     return temp;
 }

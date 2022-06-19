@@ -70,6 +70,6 @@ Term ->   NUMBER
         | IDENTIFIER TermTail
         | '(' Expression ')'
 
-TermTail ->   '(' Expression ')'
+TermTail ->   '(' OptionalArgumentList ')'
             | e
 ```

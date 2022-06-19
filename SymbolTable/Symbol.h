@@ -6,11 +6,11 @@
 class Symbol
 {
   public:
-    Symbol(std::string name, int type);
+    Symbol(std::string name, std::string type);
 
     friend std::ostream &operator<<(std::ostream &os, Symbol &symbol);
 
     std::string name;
-    int         type;   // Index into the symbol table
+    std::string type;   // TODO: This should be something else later
     int         offset; // Where in memory this symbol is to be stored
 };

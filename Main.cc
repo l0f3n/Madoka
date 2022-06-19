@@ -18,16 +18,17 @@ int main(int argc, char **argv)
     Parser    parser{tokenizer, &symbolTable};
     AST_Node *root = parser.parse();
 
-    /*
+    symbolTable.print(std::cout);
+    std::cout << std::endl;
+
     root->print(std::cout);
     std::cout << std::endl;
 
+    /*
     Quads quads{&symbolTable};
     quads.generate_quads(root);
     std::cout << quads << std::endl;
 
-    symbolTable.print(std::cout);
-    std::cout << std::endl;
 
     CodeGenerator code_generator{&symbolTable};
     std::ofstream os{"out.asm"};
