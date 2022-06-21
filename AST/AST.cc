@@ -145,9 +145,7 @@ AST_UnaryMinus::AST_UnaryMinus(AST_Expression *expr) : expr{expr} {}
 
 AST_UnaryMinus::~AST_UnaryMinus() { delete expr; }
 
-AST_Identifier::AST_Identifier(Symbol *symbol, std::string name)
-    : symbol{symbol}, name{name}
-{}
+AST_Identifier::AST_Identifier(int symbol_index) : symbol_index{symbol_index} {}
 
 AST_FunctionCall::AST_FunctionCall(AST_Identifier     *ident,
                                    AST_ExpressionList *arguments)

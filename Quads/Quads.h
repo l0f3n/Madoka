@@ -10,11 +10,20 @@ struct Quad
   public:
     enum class Operation
     {
-        I_LOAD,
+        // Integer operations
+        I_STORE,
         I_ADD,
+
+        // Operations that work on both
+        ASSIGN,
+        PARAM,
+        LABEL,
+        FUNCTION_CALL,
+        RETURN,
     };
 
     Quad(Operation, Symbol *, Symbol *, Symbol *);
+    Quad(Operation, Symbol *, long, Symbol *);
     Quad(Operation, long, Symbol *, Symbol *);
     Quad(Operation, double, Symbol *, Symbol *);
 
@@ -26,7 +35,13 @@ struct Quad
         Symbol *operand1;
     };
 
-    Symbol *operand2;
+    union
+    {
+        long    integer_value2;
+        double  real_value2;
+        Symbol *operand2;
+    };
+
     Symbol *dest;
 
     friend std::ostream &operator<<(std::ostream &os, Quad const &q);
@@ -35,7 +50,7 @@ struct Quad
 class Quads
 {
   public:
-    Quads(SymbolTable *symbolTable);
+    Quads(SymbolTable *symbol_table);
 
     void generate_quads(AST_Node *root);
 
@@ -46,7 +61,7 @@ class Quads
 
     friend std::ostream &operator<<(std::ostream &os, Quads const &q);
 
-    SymbolTable *symbolTable;
+    SymbolTable *symbol_table;
 
   private:
     std::vector<Quad *> quads;

@@ -9,7 +9,7 @@ class Parser
 {
   public:
     Parser(std::istream &is);
-    Parser(Tokenizer &tokenizer, SymbolTable *symbolTable);
+    Parser(Tokenizer &tokenizer, SymbolTable *symbol_table);
 
     AST_Node *parse();
 
@@ -47,5 +47,5 @@ class Parser
     AST_BinaryOperation *respect_precedence(AST_BinaryOperation *binop);
 
     Tokenizer    tokenizer;
-    SymbolTable *symbolTable;
+    SymbolTable *symbol_table;
 };

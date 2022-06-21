@@ -6,11 +6,49 @@
 class Symbol
 {
   public:
-    Symbol(std::string name, std::string type);
+    enum Tag
+    {
+        Undefined,
+
+        Variable,
+        Function,
+        Type,
+    };
+
+    Symbol(const std::string &name);
+    virtual ~Symbol();
+
+    // TODO: Position information struct !!!!!!!!!!!!!!!
+    std::string name;
+    Tag         tag;
+    int         type;
+    int         level;
+    int         hash_link;
 
     friend std::ostream &operator<<(std::ostream &os, Symbol &symbol);
+};
 
-    std::string name;
-    std::string type;   // TODO: This should be something else later
-    int         offset; // Where in memory this symbol is to be stored
+class VariableSymbol : public Symbol
+{
+  public:
+    VariableSymbol(const std::string &name);
+
+    int offset;
+};
+
+class FunctionSymbol : public Symbol
+{
+  public:
+    FunctionSymbol(const std::string &name);
+
+    int label;
+    int activation_record_size;
+};
+
+class TypeSymbol : public Symbol
+{
+  public:
+    TypeSymbol(const std::string &name);
+
+    int size; // In bytes
 };

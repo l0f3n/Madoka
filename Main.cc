@@ -13,25 +13,22 @@ int main(int argc, char **argv)
     tokenizer.print(std::cout);
     std::cout << std::endl;
 
-    SymbolTable symbolTable{};
+    SymbolTable symbol_table{};
 
-    Parser    parser{tokenizer, &symbolTable};
+    Parser    parser{tokenizer, &symbol_table};
     AST_Node *root = parser.parse();
 
-    symbolTable.print(std::cout);
+    symbol_table.print(std::cout);
     std::cout << std::endl;
 
-    root->print(std::cout);
+    root->print(std::cout, &symbol_table);
     std::cout << std::endl;
 
-    /*
-    Quads quads{&symbolTable};
+    Quads quads{&symbol_table};
     quads.generate_quads(root);
     std::cout << quads << std::endl;
 
-
-    CodeGenerator code_generator{&symbolTable};
+    CodeGenerator code_generator{&symbol_table};
     std::ofstream os{"out.asm"};
     code_generator.generate_code(&quads, os);
-    */
 }

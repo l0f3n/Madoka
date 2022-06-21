@@ -19,5 +19,8 @@ BraceWrapping:
     SplitEmptyFunction: false
     SplitEmptyRecord: false
 
+ColumnLimit: 80
+
 IncludeBlocks: Merge
+IndentCaseLabels: true
 IndentWidth: 4
