@@ -3,6 +3,13 @@
 #include <iostream>
 #include <string>
 
+struct Location
+{
+    int l1; // Starting line
+    int c1; // Starting column
+    int c2; // Ending column
+};
+
 struct Token
 {
   public:
@@ -48,11 +55,14 @@ struct Token
     Token(Kind, int, int, int, std::string, long);
     Token(Kind, int, int, int, std::string, double);
 
-    Kind kind;
+    Kind     kind;
+    Location location;
 
+    /*
     int line;
     int begin_column;
     int end_column;
+    */
 
     std::string text{""};
     union
@@ -65,3 +75,4 @@ struct Token
 };
 
 std::ostream &operator<<(std::ostream &os, Token::Kind const &k);
+std::ostream &operator<<(std::ostream &os, Location const &l);

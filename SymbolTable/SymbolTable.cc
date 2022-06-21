@@ -1,5 +1,7 @@
 #include "SymbolTable.h"
+#include "Error/Error.h"
 #include "SymbolTable/Symbol.h"
+#include "Tokenizer/Token.h"
 #include <string>
 
 SymbolTable::SymbolTable()
@@ -10,9 +12,11 @@ SymbolTable::SymbolTable()
         hash_table[i] = -1;
     }
 
-    insert_type("void", 0);
-    insert_type("integer", 8);
-    insert_type("real", 8);
+    Location location{-1, -1, -1};
+
+    insert_type(location, "void", 0);
+    insert_type(location, "integer", 8);
+    insert_type(location, "real", 8);
 }
 
 SymbolTable::~SymbolTable()
@@ -30,7 +34,7 @@ void SymbolTable::print(std::ostream &os)
 {
     for (int i{0}; i <= current_symbol_index; i++)
     {
-        os << *symbol_table[i] << std::endl;
+        os << i << ": " << *symbol_table[i] << std::endl;
     }
 }
 
@@ -53,16 +57,18 @@ long SymbolTable::get_next_label()
     return 0;
 }
 
-int SymbolTable::insert_variable(const std::string &name, int type)
+int SymbolTable::insert_variable(Location const    &location,
+                                 const std::string &name, int type)
 {
-    int symbol_index = insert_symbol(name, Symbol::Tag::Variable);
+    int symbol_index = insert_symbol(location, name, Symbol::Tag::Variable);
 
     Symbol *symbol = symbol_table[symbol_index];
 
     if (symbol->tag != Symbol::Tag::Undefined)
     {
-        // TODO: Better error reporting
-        std::cout << "Redefintion of variable: " << symbol->name << std::endl;
+        error(location) << "Variable '" << name << "' already defined at "
+                        << symbol->location << std::endl;
+
         std::exit(1);
         return symbol_index;
     }
@@ -85,16 +91,18 @@ int SymbolTable::insert_variable(const std::string &name, int type)
     return symbol_index;
 }
 
-int SymbolTable::insert_function(const std::string &name)
+int SymbolTable::insert_function(Location const    &location,
+                                 const std::string &name)
 {
-    int symbol_index = insert_symbol(name, Symbol::Tag::Function);
+    int symbol_index = insert_symbol(location, name, Symbol::Tag::Function);
 
     Symbol *symbol = symbol_table[symbol_index];
 
     if (symbol->tag != Symbol::Tag::Undefined)
     {
-        // TODO: Better error reporting
-        std::cout << "Redefintion of function " << symbol->name << std::endl;
+        error(location) << "Function '" << name << "' already defined at "
+                        << symbol->location << std::endl;
+        std::exit(1);
     }
 
     // NOTE: At this point, this is guaranteed to be a FunctionSymbol
@@ -108,16 +116,18 @@ int SymbolTable::insert_function(const std::string &name)
     return symbol_index;
 }
 
-int SymbolTable::insert_type(const std::string &name, int size)
+int SymbolTable::insert_type(Location const &location, const std::string &name,
+                             int size)
 {
-    int symbol_index = insert_symbol(name, Symbol::Tag::Type);
+    int symbol_index = insert_symbol(location, name, Symbol::Tag::Type);
 
     Symbol *symbol = symbol_table[symbol_index];
 
     if (symbol->tag != Symbol::Tag::Undefined)
     {
-        // TODO: Better error reporting
-        std::cout << "Redefintion of type" << symbol->name << std::endl;
+        error(location) << "Type '" << name << "' already defined at "
+                        << symbol->location << std::endl;
+        std::exit(1);
     }
 
     // NOTE: At this point, this is guaranteed to be a TypeSymbol
@@ -131,7 +141,8 @@ int SymbolTable::insert_type(const std::string &name, int size)
     return symbol_index;
 }
 
-int SymbolTable::insert_symbol(const std::string &name, Symbol::Tag tag)
+int SymbolTable::insert_symbol(Location const    &location,
+                               std::string const &name, Symbol::Tag tag)
 {
     int symbol_index = lookup_symbol(name);
 
@@ -152,25 +163,24 @@ int SymbolTable::insert_symbol(const std::string &name, Symbol::Tag tag)
     {
         case Symbol::Tag::Variable:
         {
-            symbol = new VariableSymbol(name);
+            symbol = new VariableSymbol(location, name);
             break;
         }
         case Symbol::Tag::Function:
         {
-            symbol = new FunctionSymbol(name);
+            symbol = new FunctionSymbol(location, name);
             break;
         }
         case Symbol::Tag::Type:
         {
-            symbol = new TypeSymbol(name);
+            symbol = new TypeSymbol(location, name);
             break;
         }
         default:
         {
-            // TODO: Better error handling
-            std::cout
-                << "Internal compiler error: Cannot insert symbol with tag "
-                << tag << std::endl;
+            internal_compiler_error() << " Unhandled symbol tag '" << tag
+                                      << "' in insert_symbol()" << std::endl;
+            std::exit(1);
         }
     }
 
@@ -191,6 +201,15 @@ int SymbolTable::insert_symbol(const std::string &name, Symbol::Tag tag)
 
     return current_symbol_index;
 }
+
+/*
+int SymbolTable::insert_symbol(std::string const &name, Symbol::Tag tag)
+{
+// NOTE: Dummy location, used for temporary variables and predefined types
+Location const location{-1, -1, -1};
+return insert_symbol(location, name, tag);
+}
+*/
 
 int SymbolTable::lookup_symbol(const std::string &name) const
 {

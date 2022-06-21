@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.10)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(
+  COMPILE_FLAGS
+  -g
+)
+
 project (madoka VERSION 1.0)
 
 set(
@@ -14,6 +19,7 @@ set(
   AST/Print.cc
   SymbolTable/SymbolTable.cc
   SymbolTable/Symbol.cc
+  Error/Error.cc
   Quads/Quads.cc
   CodeGenerator/CodeGenerator.cc
 )
@@ -26,6 +32,7 @@ set(
   AST/AST.h
   SymbolTable/SymbolTable.h
   SymbolTable/Symbol.h
+  Error/Error.h
   Quads/Quads.h
   CodeGenerator/CodeGenerator.h
 )

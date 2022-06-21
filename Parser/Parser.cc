@@ -1,5 +1,6 @@
 #include "Parser.h"
 #include "AST/AST.h"
+#include "Error/Error.h"
 #include "Tokenizer/Tokenizer.h"
 #include <iostream>
 #include <sstream>
@@ -37,8 +38,9 @@ Token Parser::expect(Token::Kind kind)
 
 void Parser::report_syntax_error_and_stop(std::string message)
 {
-    std::cout << "SyntaxError:" << tokenizer.peek(1).line + 1 << ","
-              << tokenizer.peek(1).begin_column << ": " << message << std::endl;
+    Location loc = tokenizer.peek(1).location;
+    std::cout << "SyntaxError:" << loc.l1 << "," << loc.c1 << ": " << message
+              << std::endl;
     std::exit(1);
 }
 
@@ -145,9 +147,9 @@ AST_Statement *Parser::parse_statement()
 
                 if (symbol_index == -1)
                 {
-                    // TODO: Better error handling
-                    std::cout << "Error: Undefined reference to '"
-                              << identifier_token.text << "'" << std::endl;
+                    error(identifier_token.location)
+                        << "Reference to undefined variable '"
+                        << identifier_token.text << "'" << std::endl;
                     std::exit(1);
                 }
 
@@ -169,7 +171,8 @@ AST_Statement *Parser::parse_statement()
                     symbol_table->remove_symbol(defintion->lhs->symbol_index);
 
                 int symbol_index = symbol_table->insert_variable(
-                    identifier_token.text, symbol->type);
+                    identifier_token.location, identifier_token.text,
+                    symbol->type);
 
                 defintion->lhs->symbol_index = symbol_index;
 
@@ -185,16 +188,18 @@ AST_Statement *Parser::parse_statement()
 
                 if (symbol_index == -1)
                 {
-                    // TODO: Better error handling
-                    std::cout << "Error: Undefined reference to '"
-                              << identifier_token.text << "'" << std::endl;
+
+                    error(identifier_token.location)
+                        << "Reference to undefined function '"
+                        << identifier_token.text << "'" << std::endl;
                     std::exit(1);
                 }
                 else if (symbol_table->get_symbol(symbol_index)->tag !=
                          Symbol::Tag::Function)
                 {
-                    // TODO: Better error handling
-                    std::cout << "Error: Can't call none function" << std::endl;
+                    error(identifier_token.location)
+                        << "Symbol '" << identifier_token.text
+                        << "' is not a function" << std::endl;
                     std::exit(1);
                 }
 
@@ -218,10 +223,10 @@ AST_Statement *Parser::parse_statement()
         {
             tokenizer.eat();
 
-            Token function_name_token = expect(Token::Kind::Identifier);
+            Token name_token = expect(Token::Kind::Identifier);
 
-            int symbol_index =
-                symbol_table->insert_function(function_name_token.text);
+            int symbol_index = symbol_table->insert_function(
+                name_token.location, name_token.text);
 
             symbol_table->open_scope();
 
@@ -314,8 +319,9 @@ AST_Statement *Parser::parse_statement_tail()
             }
 
             // NOTE: A bad hack, see above. We add the proper name later when we
-            // actually know it
-            int symbol_index = symbol_table->insert_variable("-", type_index);
+            // actually know it.
+            int symbol_index = symbol_table->insert_variable(
+                token_type.location, "-", type_index);
 
             AST_Identifier *identifier = new AST_Identifier(symbol_index);
 
@@ -481,14 +487,23 @@ AST_Identifier *Parser::parse_parameter()
 
     int type_index = symbol_table->lookup_symbol(type.text);
 
+    Symbol *type_symbol = symbol_table->get_symbol(type_index);
+
     if (type_index == -1)
     {
-        // TODO: Better error
-        std::cout << "Error" << std::endl;
+        error(type.location) << "Reference to undefined symbol '" << type.text
+                             << "'" << std::endl;
+        std::exit(1);
+    }
+    else if (type_symbol->tag != Symbol::Tag::Type)
+    {
+        error(type.location)
+            << "Symbol '" << type.text << "' is not a type" << std::endl;
         std::exit(1);
     }
 
-    int symbol_index = symbol_table->insert_variable(name.text, type_index);
+    int symbol_index =
+        symbol_table->insert_variable(name.location, name.text, type_index);
 
     return new AST_Identifier(symbol_index);
 }
@@ -591,25 +606,47 @@ AST_Expression *Parser::parse_term()
 
         if (symbol_index == -1)
         {
-            // TODO: Better error handling
-            std::cout << "Undefined reference..." << std::endl;
+            error(name.location) << "Reference to undefined symbol '"
+                                 << name.text << "'" << std::endl;
             std::exit(1);
         }
 
         AST_Identifier *ident = new AST_Identifier(symbol_index);
 
-        AST_ExpressionList *arguments = parse_term_tail();
-
-        if (arguments)
+        // NOTE: If we find a left parentheses here, we try to parse a function
+        if (tokenizer.peek(1).kind == Token::Kind::LeftParentheses)
         {
-            // TODO: Better error handling: Check that symbol is actually a
-            // function
+            expect(Token::Kind::LeftParentheses);
+
+            AST_ExpressionList *arguments = parse_optional_argument_list();
+
+            expect(Token::Kind::RightParentheses);
+
+            Symbol *symbol = symbol_table->get_symbol(symbol_index);
+
+            if (symbol->tag != Symbol::Tag::Function)
+            {
+                error(symbol->location) << "Symbol '" << symbol->name
+                                        << "' is not a function" << std::endl
+                                        << std::endl;
+                std::exit(1);
+            }
+
             return new AST_FunctionCall(ident, arguments);
         }
+        // NOTE: Otherwise, we assume it was just an identifier
         else
         {
-            // TODO: Better error handling: Check that symbol is actually a
-            // variable
+            Symbol *symbol = symbol_table->get_symbol(symbol_index);
+
+            if (symbol->tag != Symbol::Tag::Variable)
+            {
+                error(name.location) << "Symbol '" << symbol->name
+                                     << "' is not a variable" << std::endl
+                                     << std::endl;
+                std::exit(1);
+            }
+
             return ident;
         }
     }
@@ -623,34 +660,6 @@ AST_Expression *Parser::parse_term()
     else
     {
         report_syntax_error_and_stop("Failed to parse term");
-        return nullptr;
-    }
-}
-
-AST_ExpressionList *Parser::parse_term_tail()
-{
-    if (tokenizer.peek(1).kind == Token::Kind::LeftParentheses)
-    {
-        expect(Token::Kind::LeftParentheses);
-
-        AST_ExpressionList *arguments = parse_optional_argument_list();
-
-        expect(Token::Kind::RightParentheses);
-
-        // if (arguments)
-        // {
-        return arguments;
-        // }
-        /*
-        else
-        {
-            report_syntax_error_and_stop("Failed to parse term tail");
-            return nullptr;
-        }
-        */
-    }
-    else
-    {
         return nullptr;
     }
 }

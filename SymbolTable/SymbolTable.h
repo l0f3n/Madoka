@@ -12,11 +12,14 @@ class SymbolTable
     SymbolTable();
     ~SymbolTable();
 
-    int insert_variable(const std::string &name, int type);
-    int insert_function(const std::string &name);
-    int insert_type(const std::string &name, int size);
+    int insert_variable(Location const &, std::string const &, int type);
+    int insert_function(Location const &, std::string const &);
+    int insert_type(Location const &, std::string const &, int size);
 
-    int     insert_symbol(const std::string &name, Symbol::Tag tag);
+    int insert_symbol(Location const &, const std::string &name,
+                      Symbol::Tag tag);
+    // int insert_symbol(const std::string &name, Symbol::Tag tag);
+
     int     lookup_symbol(const std::string &name) const;
     Symbol *get_symbol(int symbol_index) const;
     Symbol *remove_symbol(int symbol_index);
