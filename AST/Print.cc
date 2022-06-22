@@ -71,8 +71,8 @@ void AST_Identifier::print(std::ostream &os, SymbolTable *symbol_table,
                            bool              is_left,
                            std::vector<bool> is_left_history) const
 {
-    // TODO: Print actual name
-    os << indent(is_left_history) << "An identifier" << std::endl;
+    Symbol *symbol = symbol_table->get_symbol(symbol_index);
+    os << indent(is_left_history) << symbol->name << std::endl;
 }
 
 void AST_FunctionCall::print(std::ostream &os, SymbolTable *symbol_table,

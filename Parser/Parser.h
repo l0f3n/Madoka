@@ -22,7 +22,6 @@ class Parser
     AST_StatementList *parse_statement_list();
     AST_StatementList *parse_statement_list_tail();
     AST_Statement     *parse_statement();
-    AST_Statement     *parse_statement_tail();
 
     // Function call
     AST_ExpressionList *parse_optional_argument_list();
@@ -42,7 +41,6 @@ class Parser
     AST_BinaryOperation *parse_expression_tail();
     AST_Expression      *parse_term();
     AST_Expression      *parse_minus_term();
-    AST_ExpressionList  *parse_term_tail();
 
     AST_BinaryOperation *respect_precedence(AST_BinaryOperation *binop);
 

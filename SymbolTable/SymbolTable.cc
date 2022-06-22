@@ -7,10 +7,7 @@
 SymbolTable::SymbolTable()
     : symbol_table{}, block_table{}, current_symbol_index{-1}
 {
-    for (int i{0}; i < MAX_HASH_VALUE; ++i)
-    {
-        hash_table[i] = -1;
-    }
+    std::fill(std::begin(hash_table), std::end(hash_table), -1);
 
     Location location{-1, -1, -1};
 
