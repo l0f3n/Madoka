@@ -34,6 +34,12 @@ class SymbolTable
 
     void print(std::ostream &os);
 
+    std::string const &get_type_name(int type_index) const;
+
+    int type_void{-1};
+    int type_integer{-1};
+    int type_real{-1};
+
   private:
     int hash(const std::string &name) const;
 
@@ -53,6 +59,4 @@ class SymbolTable
     int current_label_number;
 
     Location no_location{Location{-1, -1, -1}};
-
-    int void_type{-1};
 };

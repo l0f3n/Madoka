@@ -11,9 +11,9 @@ SymbolTable::SymbolTable()
     std::fill(std::begin(block_table), std::end(block_table), -1);
     std::fill(std::begin(hash_table), std::end(hash_table), -1);
 
-    void_type = insert_type(no_location, "void", 0);
-    insert_type(no_location, "integer", 8);
-    insert_type(no_location, "real", 8);
+    type_void    = insert_type(no_location, "void", 0);
+    type_integer = insert_type(no_location, "integer", 8);
+    type_real    = insert_type(no_location, "real", 8);
 
     insert_function(no_location, "#global");
     open_scope();
@@ -40,7 +40,7 @@ void SymbolTable::print(std::ostream &os)
 
 int SymbolTable::generate_temporary_variable(int type)
 {
-    if (type == void_type)
+    if (type == type_void)
     {
         internal_compiler_error()
             << "Cannot generate a temporary variable of type void" << std::endl;
@@ -159,27 +159,27 @@ int SymbolTable::insert_symbol(Location const    &location,
 
     switch (tag)
     {
-        case Symbol::Tag::Variable:
-        {
-            symbol = new VariableSymbol(location, name);
-            break;
-        }
-        case Symbol::Tag::Function:
-        {
-            symbol = new FunctionSymbol(location, name);
-            break;
-        }
-        case Symbol::Tag::Type:
-        {
-            symbol = new TypeSymbol(location, name);
-            break;
-        }
-        default:
-        {
-            internal_compiler_error() << " Unhandled symbol tag '" << tag
-                                      << "' in insert_symbol()" << std::endl;
-            std::exit(1);
-        }
+    case Symbol::Tag::Variable:
+    {
+        symbol = new VariableSymbol(location, name);
+        break;
+    }
+    case Symbol::Tag::Function:
+    {
+        symbol = new FunctionSymbol(location, name);
+        break;
+    }
+    case Symbol::Tag::Type:
+    {
+        symbol = new TypeSymbol(location, name);
+        break;
+    }
+    default:
+    {
+        internal_compiler_error() << " Unhandled symbol tag '" << tag
+                                  << "' in insert_symbol()" << std::endl;
+        std::exit(1);
+    }
     }
 
     symbol->level = current_level;
@@ -288,3 +288,12 @@ void SymbolTable::close_scope()
 }
 
 int SymbolTable::enclosing_scope() const { return block_table[current_level]; }
+
+std::string const &SymbolTable::get_type_name(int type_index) const
+{
+    ASSERT(type_index >= 0);
+    Symbol *symbol = symbol_table[type_index];
+    ASSERT(symbol != nullptr);
+    ASSERT(symbol->tag == Symbol::Tag::Type);
+    return symbol->name;
+}

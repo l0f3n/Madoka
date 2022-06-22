@@ -11,30 +11,32 @@ project (madoka VERSION 1.0)
 
 set(
   SOURCES
-  Main.cc
-  Tokenizer/Tokenizer.cc
-  Tokenizer/Token.cc
-  Parser/Parser.cc
   AST/AST.cc
   AST/Print.cc
-  SymbolTable/SymbolTable.cc
-  SymbolTable/Symbol.cc
-  Error/Error.cc
-  Quads/Quads.cc
   CodeGenerator/CodeGenerator.cc
+  Error/Error.cc
+  Main.cc
+  Parser/Parser.cc
+  Quads/Quads.cc
+  SymbolTable/Symbol.cc
+  SymbolTable/SymbolTable.cc
+  Tokenizer/Token.cc
+  Tokenizer/Tokenizer.cc
+  TypeChecker/TypeChecker.cc
 )
 
 set(
   HEADERS
-  Tokenizer/Tokenizer.h
-  Tokenizer/Token.h
-  Parser/Parser.h
   AST/AST.h
-  SymbolTable/SymbolTable.h
-  SymbolTable/Symbol.h
-  Error/Error.h
-  Quads/Quads.h
   CodeGenerator/CodeGenerator.h
+  Error/Error.h
+  Parser/Parser.h
+  Quads/Quads.h
+  SymbolTable/Symbol.h
+  SymbolTable/SymbolTable.h
+  Tokenizer/Token.h
+  Tokenizer/Tokenizer.h
+  TypeChecker/TypeChecker.h
 )
 
 add_executable(madoka ${SOURCES} ${HEADERS})

@@ -26,9 +26,9 @@ class Tokenizer
     bool is_identifier_char(char c);
 
     Token create_token(Token::Kind kind);
-    Token create_token(Token::Kind kind, std::string &text);
-    Token create_token(Token::Kind kind, std::string &text, long value);
-    Token create_token(Token::Kind kind, std::string &text, double value);
+    Token create_token(Token::Kind kind, std::string text);
+    Token create_token(Token::Kind kind, std::string text, long value);
+    Token create_token(Token::Kind kind, std::string text, double value);
 
     Token tokenize_next_token();
 

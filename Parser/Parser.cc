@@ -8,8 +8,10 @@
 #include <stdlib.h>
 #include <string>
 
-Parser::Parser(Tokenizer &tokenizer, SymbolTable *symbol_table, Quads &quads)
-    : tokenizer{tokenizer}, symbol_table{symbol_table}, quads{quads}
+Parser::Parser(Tokenizer &tokenizer, SymbolTable *symbol_table,
+               TypeChecker &type_checker, Quads &quads)
+    : tokenizer{tokenizer}, symbol_table{symbol_table},
+      type_checker{type_checker}, quads{quads}
 {}
 
 Token Parser::expect(Token::Kind kind)
@@ -23,20 +25,9 @@ Token Parser::expect(Token::Kind kind)
     else
     {
         std::ostringstream oss{};
-        oss << "Unexpected token: '" << next.text << "', "
-            << "expected <" << kind << ">, got <" << tokenizer.peek(1).kind
-            << ">";
-        report_syntax_error_and_stop(oss.str());
-        std::exit(1);
+        report_parse_error_unexpected_token(next);
+        return next;
     }
-}
-
-void Parser::report_syntax_error_and_stop(std::string message)
-{
-    Location loc = tokenizer.peek(1).location;
-    std::cout << "SyntaxError:" << loc.l1 << "," << loc.c1 << ": " << message
-              << std::endl;
-    std::exit(1);
 }
 
 AST_BinaryOperation *Parser::respect_precedence(AST_BinaryOperation *binop)
@@ -88,8 +79,17 @@ AST_StatementList *Parser::parse_statement_list()
     AST_FunctionDefinition *function_definition =
         dynamic_cast<AST_FunctionDefinition *>(statement);
 
+    // NOTE: After we have parsed a function definition, we typecheck it. This
+    // also include typechecking its entire body. So everything that is not
+    // global will be included by doing this every time we have parsed a
+    // function
     if (function_definition != nullptr)
     {
+        // TODO: Make this function call look cleaner, add another overload
+        // probably
+        function_definition->print(std::cout, symbol_table, true, {});
+        std::cout << std::endl;
+        type_checker.type_check(function_definition);
         quads.generate_quads(function_definition);
     }
 
@@ -102,7 +102,9 @@ AST_StatementList *Parser::parse_statement_list()
     }
     else
     {
-        return new AST_StatementList(statement);
+        // TODO: This gives the statementlist the position of the last statement
+        // in the list, but it should be the first
+        return new AST_StatementList(statement->location, statement);
     }
 }
 
@@ -117,19 +119,19 @@ AST_StatementList *Parser::parse_statement_list_tail()
 
     switch (tokenizer.peek(1).kind)
     {
-        case Token::Kind::Identifier:
-        case Token::Kind::Return:
-        case Token::Kind::Function:
-        case Token::Kind::LeftCurlyBrace:
-        case Token::Kind::If:
-        case Token::Kind::While:
-        {
-            return parse_statement_list();
-        }
-        default:
-        {
-            return nullptr;
-        }
+    case Token::Kind::Identifier:
+    case Token::Kind::Return:
+    case Token::Kind::Function:
+    case Token::Kind::LeftCurlyBrace:
+    case Token::Kind::If:
+    case Token::Kind::While:
+    {
+        return parse_statement_list();
+    }
+    default:
+    {
+        return nullptr;
+    }
     }
 }
 
@@ -137,203 +139,197 @@ AST_Statement *Parser::parse_statement()
 {
     switch (tokenizer.peek(1).kind)
     {
-        case Token::Kind::Identifier:
+    case Token::Kind::Identifier:
+    {
+        Token name_token = tokenizer.eat();
+        switch (tokenizer.peek(1).kind)
         {
-            Token name_token = tokenizer.eat();
-            switch (tokenizer.peek(1).kind)
+        // Definition
+        case Token::Kind::Colon:
+        {
+            tokenizer.eat();
+
+            Token type_token = expect(Token::Kind::Identifier);
+
+            expect(Token::Kind::Equals);
+
+            AST_Expression *expression = parse_expression();
+
+            // NOTE: We are done parsing the definition, now we can do
+            // all checks for correctness
+
+            int type_index = symbol_table->lookup_symbol(type_token.text);
+
+            if (type_index == -1)
             {
-                // Definition
-                case Token::Kind::Colon:
-                {
-                    tokenizer.eat();
-
-                    Token type_token = expect(Token::Kind::Identifier);
-
-                    expect(Token::Kind::Equals);
-
-                    AST_Expression *expression = parse_expression();
-
-                    // NOTE: We are done parsing the definition, now we can do
-                    // all checks for correctness
-
-                    int type_index =
-                        symbol_table->lookup_symbol(type_token.text);
-
-                    if (type_index == -1)
-                    {
-                        error(type_token.location)
-                            << "Unknown type '" << type_token.text << "'"
-                            << std::endl;
-                        std::exit(1);
-                    }
-                    else if (symbol_table->get_symbol(type_index)->tag !=
-                             Symbol::Tag::Type)
-                    {
-                        error(type_token.location)
-                            << "Symbol '" << type_token.text
-                            << "' is not a type" << std::endl;
-                        std::exit(1);
-                    }
-
-                    int symbol_index = symbol_table->insert_variable(
-                        name_token.location, name_token.text, type_index);
-
-                    AST_Identifier *identifier =
-                        new AST_Identifier(symbol_index);
-
-                    return new AST_VariableDefinition(identifier, expression);
-                }
-                // Assignment
-                case Token::Kind::Equals:
-                {
-                    tokenizer.eat();
-
-                    int symbol_index =
-                        symbol_table->lookup_symbol(name_token.text);
-
-                    if (symbol_index == -1)
-                    {
-                        error(name_token.location)
-                            << "Reference to undefined variable '"
-                            << name_token.text << "'" << std::endl;
-                        std::exit(1);
-                    }
-
-                    AST_Identifier *ident = new AST_Identifier(symbol_index);
-
-                    AST_Expression *expression = parse_expression();
-
-                    return new AST_VariableAssignment(ident, expression);
-                }
-                // Function call
-                case Token::Kind::LeftParentheses:
-                {
-                    tokenizer.eat();
-
-                    AST_ExpressionList *arguments =
-                        parse_optional_argument_list();
-
-                    expect(Token::Kind::RightParentheses);
-
-                    int symbol_index =
-                        symbol_table->lookup_symbol(name_token.text);
-
-                    if (symbol_index == -1)
-                    {
-
-                        error(name_token.location)
-                            << "Reference to undefined function '"
-                            << name_token.text << "'" << std::endl;
-                        std::exit(1);
-                    }
-                    else if (symbol_table->get_symbol(symbol_index)->tag !=
-                             Symbol::Tag::Function)
-                    {
-                        error(name_token.location)
-                            << "Symbol '" << name_token.text
-                            << "' is not a function" << std::endl;
-                        std::exit(1);
-                    }
-
-                    AST_Identifier *name = new AST_Identifier(symbol_index);
-
-                    return new AST_FunctionCall(name, arguments);
-                }
-                default:
-                {
-                    Token next = tokenizer.peek(1);
-                    error(next.location)
-                        << "Unexpected token '" << next.text
-                        << "', expected either ':', '=' or '('" << std::endl;
-                    std::exit(1);
-                    return nullptr;
-                }
+                error(type_token.location)
+                    << "Unknown type '" << type_token.text << "'" << std::endl;
+                std::exit(1);
             }
+            else if (symbol_table->get_symbol(type_index)->tag !=
+                     Symbol::Tag::Type)
+            {
+                error(type_token.location) << "Symbol '" << type_token.text
+                                           << "' is not a type" << std::endl;
+                std::exit(1);
+            }
+
+            int symbol_index = symbol_table->insert_variable(
+                name_token.location, name_token.text, type_index);
+
+            AST_Identifier *identifier =
+                new AST_Identifier(name_token.location, symbol_index);
+
+            return new AST_VariableDefinition(name_token.location, identifier,
+                                              expression);
         }
-        case Token::Kind::Return:
+        // Assignment
+        case Token::Kind::Equals:
         {
             tokenizer.eat();
 
-            AST_ExpressionList *return_values = parse_optional_argument_list();
+            int symbol_index = symbol_table->lookup_symbol(name_token.text);
 
-            return new AST_Return(return_values);
+            if (symbol_index == -1)
+            {
+                error(name_token.location)
+                    << "Reference to undefined variable '" << name_token.text
+                    << "'" << std::endl;
+                std::exit(1);
+            }
+
+            AST_Identifier *ident =
+                new AST_Identifier(name_token.location, symbol_index);
+
+            AST_Expression *expression = parse_expression();
+
+            return new AST_VariableAssignment(name_token.location, ident,
+                                              expression);
         }
-        case Token::Kind::Function:
+        // Function call
+        case Token::Kind::LeftParentheses:
         {
             tokenizer.eat();
 
-            Token name_token = expect(Token::Kind::Identifier);
-
-            int symbol_index = symbol_table->insert_function(
-                name_token.location, name_token.text);
-
-            symbol_table->open_scope();
-
-            AST_Identifier *name = new AST_Identifier(symbol_index);
-
-            expect(Token::Kind::LeftParentheses);
-
-            AST_ParameterList *parameter_list = parse_optional_parameter_list();
+            AST_ExpressionList *arguments = parse_optional_argument_list();
 
             expect(Token::Kind::RightParentheses);
 
-            AST_ParameterList *return_values = parse_optional_return();
+            int symbol_index = symbol_table->lookup_symbol(name_token.text);
 
-            expect(Token::Kind::LeftCurlyBrace);
+            if (symbol_index == -1)
+            {
+                error(name_token.location)
+                    << "Reference to undefined function '" << name_token.text
+                    << "'" << std::endl;
+                std::exit(1);
+            }
+            else if (symbol_table->get_symbol(symbol_index)->tag !=
+                     Symbol::Tag::Function)
+            {
+                error(name_token.location)
+                    << "Symbol '" << name_token.text << "' is not a function"
+                    << std::endl;
+                std::exit(1);
+            }
 
-            // TODO: Should empty function bodies be allowed?
-            AST_StatementList *body = parse_statement_list();
+            AST_Identifier *name =
+                new AST_Identifier(name_token.location, symbol_index);
 
-            expect(Token::Kind::RightCurlyBrace);
-
-            symbol_table->close_scope();
-
-            return new AST_FunctionDefinition(name, parameter_list,
-                                              return_values, body);
-        }
-        case Token::Kind::If:
-        {
-            tokenizer.eat();
-
-            expect(Token::Kind::LeftParentheses);
-
-            AST_Expression *condition = parse_expression();
-
-            expect(Token::Kind::RightParentheses);
-
-            expect(Token::Kind::LeftCurlyBrace);
-
-            AST_StatementList *body = parse_statement_list();
-
-            expect(Token::Kind::RightCurlyBrace);
-
-            return new AST_If(condition, body);
-        }
-        case Token::Kind::While:
-        {
-            report_syntax_error_and_stop("Not implemented: While");
-            tokenizer.eat();
-
-            expect(Token::Kind::LeftParentheses);
-
-            parse_expression();
-
-            expect(Token::Kind::RightParentheses);
-
-            expect(Token::Kind::LeftCurlyBrace);
-
-            parse_statement_list();
-
-            expect(Token::Kind::RightCurlyBrace);
-
-            // TODO: Return proper value
-            return nullptr;
+            return new AST_FunctionCall(name_token.location, name, arguments);
         }
         default:
         {
-            report_syntax_error_and_stop("Failed to parse statement");
-            return nullptr;
+            report_parse_error_unexpected_token(tokenizer.peek(1));
         }
+        }
+    }
+    case Token::Kind::Return:
+    {
+        Token token_return = tokenizer.eat();
+
+        AST_ExpressionList *return_values = parse_optional_argument_list();
+
+        return new AST_Return(token_return.location, return_values);
+    }
+    case Token::Kind::Function:
+    {
+        Token token_function = tokenizer.eat();
+
+        Token name_token = expect(Token::Kind::Identifier);
+
+        int symbol_index =
+            symbol_table->insert_function(name_token.location, name_token.text);
+
+        symbol_table->open_scope();
+
+        AST_Identifier *name =
+            new AST_Identifier(name_token.location, symbol_index);
+
+        expect(Token::Kind::LeftParentheses);
+
+        AST_ParameterList *parameter_list = parse_optional_parameter_list();
+
+        expect(Token::Kind::RightParentheses);
+
+        AST_ParameterList *return_values = parse_optional_return();
+
+        expect(Token::Kind::LeftCurlyBrace);
+
+        // TODO: Should empty function bodies be allowed?
+        AST_StatementList *body = parse_statement_list();
+
+        expect(Token::Kind::RightCurlyBrace);
+
+        symbol_table->close_scope();
+
+        return new AST_FunctionDefinition(token_function.location, name,
+                                          parameter_list, return_values, body);
+    }
+    case Token::Kind::If:
+    {
+        Token token_if = tokenizer.eat();
+
+        expect(Token::Kind::LeftParentheses);
+
+        AST_Expression *condition = parse_expression();
+
+        expect(Token::Kind::RightParentheses);
+
+        expect(Token::Kind::LeftCurlyBrace);
+
+        AST_StatementList *body = parse_statement_list();
+
+        expect(Token::Kind::RightCurlyBrace);
+
+        return new AST_If(token_if.location, condition, body);
+    }
+    case Token::Kind::While:
+    {
+        report_parse_error(tokenizer.peek(1).location, "While not implemented");
+
+        tokenizer.eat();
+
+        expect(Token::Kind::LeftParentheses);
+
+        parse_expression();
+
+        expect(Token::Kind::RightParentheses);
+
+        expect(Token::Kind::LeftCurlyBrace);
+
+        parse_statement_list();
+
+        expect(Token::Kind::RightCurlyBrace);
+
+        // TODO: Return proper value
+        return nullptr;
+    }
+    default:
+    {
+        report_parse_error_unexpected_token(tokenizer.peek(1));
+        return nullptr;
+    }
     }
 }
 
@@ -362,18 +358,18 @@ AST_ExpressionList *Parser::parse_optional_argument_list()
     // TODO: This is the same ugly hack as we did above
     switch (tokenizer.peek(1).kind)
     {
-        case Token::Kind::Minus:
-        case Token::Kind::Integer:
-        case Token::Kind::Real:
-        case Token::Kind::Identifier:
-        case Token::Kind::LeftParentheses:
-        {
-            return parse_argument_list();
-        }
-        default:
-        {
-            return nullptr;
-        }
+    case Token::Kind::Minus:
+    case Token::Kind::Integer:
+    case Token::Kind::Real:
+    case Token::Kind::Identifier:
+    case Token::Kind::LeftParentheses:
+    {
+        return parse_argument_list();
+    }
+    default:
+    {
+        return nullptr;
+    }
     }
 }
 
@@ -389,7 +385,9 @@ AST_ExpressionList *Parser::parse_argument_list()
     }
     else
     {
-        return new AST_ExpressionList(argument);
+        // TODO: This is the position of the last expression, but it should be
+        // the first
+        return new AST_ExpressionList(argument->location, argument);
     }
 }
 
@@ -438,7 +436,8 @@ AST_ParameterList *Parser::parse_parameter_list()
     }
     else
     {
-        return new AST_ParameterList(parameter);
+        // TODO: Same as the other two
+        return new AST_ParameterList(parameter->location, parameter);
     }
 }
 
@@ -483,73 +482,65 @@ AST_Identifier *Parser::parse_parameter()
     int symbol_index =
         symbol_table->insert_variable(name.location, name.text, type_index);
 
-    return new AST_Identifier(symbol_index);
+    return new AST_Identifier(name.location, symbol_index);
 }
 
 AST_Expression *Parser::parse_expression()
 {
-    AST_Expression      *expr  = parse_minus_term();
-    AST_BinaryOperation *binop = parse_expression_tail();
+    AST_Expression *lhs = parse_minus_term();
 
-    if (binop)
-    {
-        binop->lhs = expr;
-        return respect_precedence(binop);
-    }
-    else
-    {
-        return expr;
-    }
-}
-
-AST_BinaryOperation *Parser::parse_expression_tail()
-{
     switch (tokenizer.peek(1).kind)
     {
-        case Token::Kind::Plus:
-        {
-            tokenizer.eat();
-            return new AST_Plus(nullptr, parse_expression());
-        }
-        case Token::Kind::Minus:
-        {
-            tokenizer.eat();
-            return new AST_Minus(nullptr, parse_expression());
-        }
-        case Token::Kind::Multiplication:
-        {
-            tokenizer.eat();
-            return new AST_Multiplication(nullptr, parse_expression());
-        }
-        case Token::Kind::Division:
-        {
-            tokenizer.eat();
-            return new AST_Division(nullptr, parse_expression());
-        }
-        case Token::Kind::LesserThan:
-        {
-            report_syntax_error_and_stop("Not implemented: Less than");
-            tokenizer.eat();
+    case Token::Kind::Plus:
+    {
+        tokenizer.eat();
+        return respect_precedence(
+            new AST_Plus(lhs->location, lhs, parse_expression()));
+    }
+    case Token::Kind::Minus:
+    {
+        tokenizer.eat();
+        return respect_precedence(
+            new AST_Minus(lhs->location, lhs, parse_expression()));
+    }
+    case Token::Kind::Multiplication:
+    {
+        tokenizer.eat();
+        return respect_precedence(
+            new AST_Multiplication(lhs->location, lhs, parse_expression()));
+    }
+    case Token::Kind::Division:
+    {
+        tokenizer.eat();
+        return respect_precedence(
+            new AST_Division(lhs->location, lhs, parse_expression()));
+    }
+    case Token::Kind::LesserThan:
+    {
+        report_parse_error(tokenizer.peek(1).location,
+                           "Lesser than not implemented");
+        tokenizer.eat();
 
-            parse_expression();
+        parse_expression();
 
-            // TODO: Return proper value
-            return nullptr;
-        }
-        case Token::Kind::GreaterThan:
-        {
-            report_syntax_error_and_stop("Not implemented: Greater than");
-            tokenizer.eat();
+        // TODO: Return proper value
+        return nullptr;
+    }
+    case Token::Kind::GreaterThan:
+    {
+        report_parse_error(tokenizer.peek(1).location,
+                           "Greater than not implemented");
+        tokenizer.eat();
 
-            parse_expression();
+        parse_expression();
 
-            // TODO: Return proper value
-            return nullptr;
-        }
-        default:
-        {
-            return nullptr;
-        }
+        // TODO: Return proper value
+        return nullptr;
+    }
+    default:
+    {
+        return lhs;
+    }
     }
 }
 
@@ -557,8 +548,8 @@ AST_Expression *Parser::parse_minus_term()
 {
     if (tokenizer.peek(1).kind == Token::Kind::Minus)
     {
-        tokenizer.eat();
-        return new AST_UnaryMinus(parse_term());
+        Token token_minus = tokenizer.eat();
+        return new AST_UnaryMinus(token_minus.location, parse_term());
     }
     else
     {
@@ -570,11 +561,14 @@ AST_Expression *Parser::parse_term()
 {
     if (tokenizer.peek(1).kind == Token::Kind::Integer)
     {
-        return new AST_Integer(tokenizer.eat().integer_value);
+        Token token_integer = tokenizer.eat();
+        return new AST_Integer(token_integer.location,
+                               token_integer.integer_value);
     }
     else if (tokenizer.peek(1).kind == Token::Kind::Real)
     {
-        return new AST_Real(tokenizer.eat().real_value);
+        Token token_real = tokenizer.eat();
+        return new AST_Real(token_real.location, token_real.real_value);
     }
     else if (tokenizer.peek(1).kind == Token::Kind::Identifier)
     {
@@ -589,7 +583,7 @@ AST_Expression *Parser::parse_term()
             std::exit(1);
         }
 
-        AST_Identifier *ident = new AST_Identifier(symbol_index);
+        AST_Identifier *ident = new AST_Identifier(name.location, symbol_index);
 
         // NOTE: If we find a left parentheses here, we try to parse a function
         if (tokenizer.peek(1).kind == Token::Kind::LeftParentheses)
@@ -610,7 +604,7 @@ AST_Expression *Parser::parse_term()
                 std::exit(1);
             }
 
-            return new AST_FunctionCall(ident, arguments);
+            return new AST_FunctionCall(name.location, ident, arguments);
         }
         // NOTE: Otherwise, we assume it was just an identifier
         else
@@ -637,7 +631,7 @@ AST_Expression *Parser::parse_term()
     }
     else
     {
-        report_syntax_error_and_stop("Failed to parse term");
+        report_parse_error_unexpected_token(tokenizer.peek(1));
         return nullptr;
     }
 }

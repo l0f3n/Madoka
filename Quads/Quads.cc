@@ -34,14 +34,14 @@ std::ostream &operator<<(std::ostream &os, Quad::Operation const &op)
 {
     switch (op)
     {
-        case Quad::Operation::I_ADD: return os << "I_ADD";
-        case Quad::Operation::I_STORE: return os << "I_STORE";
-        case Quad::Operation::ASSIGN: return os << "ASSIGN";
-        case Quad::Operation::PARAM: return os << "PARAM";
-        case Quad::Operation::LABEL: return os << "LABEL";
-        case Quad::Operation::FUNCTION_CALL: return os << "FUNCTION_CALL";
-        case Quad::Operation::RETURN: return os << "RETURN";
-        default: return os << "Unknown operation";
+    case Quad::Operation::I_ADD: return os << "I_ADD";
+    case Quad::Operation::I_STORE: return os << "I_STORE";
+    case Quad::Operation::ASSIGN: return os << "ASSIGN";
+    case Quad::Operation::PARAM: return os << "PARAM";
+    case Quad::Operation::LABEL: return os << "LABEL";
+    case Quad::Operation::FUNCTION_CALL: return os << "FUNCTION_CALL";
+    case Quad::Operation::RETURN: return os << "RETURN";
+    default: return os << "Unknown operation";
     }
 }
 
@@ -123,7 +123,6 @@ int AST_StatementList::generate_quads(Quads *quads) const
 {
     for (auto it{statements.rbegin()}; it != statements.rend();)
     {
-        // std::cout << "hello3" << std::endl;
         int statement = (*it++)->generate_quads(quads);
     }
 

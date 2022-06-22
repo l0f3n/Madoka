@@ -1,6 +1,7 @@
 #include "AST/AST.h"
 #include "CodeGenerator/CodeGenerator.h"
 #include "Parser/Parser.h"
+#include "TypeChecker/TypeChecker.h"
 #include <fstream>
 
 int main(int argc, char **argv)
@@ -15,15 +16,13 @@ int main(int argc, char **argv)
     std::cout << std::endl;
 
     SymbolTable symbol_table{};
+    TypeChecker type_checker{&symbol_table};
     Quads       quads{&symbol_table};
 
-    Parser    parser{tokenizer, &symbol_table, quads};
+    Parser    parser{tokenizer, &symbol_table, type_checker, quads};
     AST_Node *root = parser.parse();
 
     symbol_table.print(std::cout);
-    std::cout << std::endl;
-
-    root->print(std::cout, &symbol_table);
     std::cout << std::endl;
 
     /*

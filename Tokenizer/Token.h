@@ -6,6 +6,7 @@
 struct Location
 {
     int l1; // Starting line
+    int l2; // Ending line
     int c1; // Starting column
     int c2; // Ending column
 };
@@ -52,17 +53,11 @@ struct Token
     };
 
     Token();
-    Token(Kind, int, int, int, std::string, long);
-    Token(Kind, int, int, int, std::string, double);
+    Token(Kind, int, int, int, int, std::string, long);
+    Token(Kind, int, int, int, int, std::string, double);
 
     Kind     kind;
     Location location;
-
-    /*
-    int line;
-    int begin_column;
-    int end_column;
-    */
 
     std::string text{""};
     union

@@ -42,17 +42,11 @@ ParameterListTail ->   ',' ParameterList
 
 Parameter -> IDENTIFIER ':' IDENTIFIER
 
-Expression -> MinusTerm ExpressionTail
-
-ExpressionTail ->   '+' Expression
-                  | '-' Expression
-                  | '*' Expression
-                  | '/' Expression
-                  | '^' Expression
-                  | '>' Expression
-                  | '<' Expression
-                  | '=' Expression
-                  | e
+Expression ->   MinusTerm '+' Expression
+              | MinusTerm '-' Expression
+              | MinusTerm '*' Expression
+              | MinusTerm '/' Expression
+              | MinusTerm
 
 MinusTerm ->   '-' Term
              | Term

@@ -1,4 +1,5 @@
 #include "AST.h"
+#include "Tokenizer/Token.h"
 #include <iostream>
 #include <sstream>
 #include <vector>
@@ -32,7 +33,8 @@ void AST_BinaryOperation::print(std::ostream &os, SymbolTable *symbol_table,
                                 bool              is_left,
                                 std::vector<bool> is_left_history) const
 {
-    os << indent(is_left_history) << "+ " << name << std::endl;
+    os << indent(is_left_history) << "+ " << name << " (" << location << ")"
+       << std::endl;
 
     is_left_history.push_back(is_left);
 
@@ -45,20 +47,23 @@ void AST_BinaryOperation::print(std::ostream &os, SymbolTable *symbol_table,
 void AST_Integer::print(std::ostream &os, SymbolTable *symbol_table,
                         bool is_left, std::vector<bool> is_left_history) const
 {
-    os << indent(is_left_history) << value << std::endl;
+    os << indent(is_left_history) << value << " (" << location << ")"
+       << std::endl;
 }
 
 void AST_Real::print(std::ostream &os, SymbolTable *symbol_table, bool is_left,
                      std::vector<bool> is_left_history) const
 {
-    os << indent(is_left_history) << value << std::endl;
+    os << indent(is_left_history) << value << " (" << location << ")"
+       << std::endl;
 }
 
 void AST_UnaryMinus::print(std::ostream &os, SymbolTable *symbol_table,
                            bool              is_left,
                            std::vector<bool> is_left_history) const
 {
-    os << indent(is_left_history) << "+ UnaryMinus" << std::endl;
+    os << indent(is_left_history) << "+ UnaryMinus"
+       << " (" << location << ")" << std::endl;
 
     is_left_history.push_back(is_left);
 
@@ -72,14 +77,16 @@ void AST_Identifier::print(std::ostream &os, SymbolTable *symbol_table,
                            std::vector<bool> is_left_history) const
 {
     Symbol *symbol = symbol_table->get_symbol(symbol_index);
-    os << indent(is_left_history) << symbol->name << std::endl;
+    os << indent(is_left_history) << symbol->name << " (" << location << ")"
+       << std::endl;
 }
 
 void AST_FunctionCall::print(std::ostream &os, SymbolTable *symbol_table,
                              bool              is_left,
                              std::vector<bool> is_left_history) const
 {
-    std::cout << indent(is_left_history) << "FunctionCall" << std::endl;
+    std::cout << indent(is_left_history) << "FunctionCall"
+              << " (" << location << ")" << std::endl;
 
     is_left_history.push_back(is_left);
 
@@ -97,7 +104,8 @@ void AST_FunctionDefinition::print(std::ostream &os, SymbolTable *symbol_table,
                                    bool              is_left,
                                    std::vector<bool> is_left_history) const
 {
-    std::cout << indent(is_left_history) << "+ FunctionDefinition" << std::endl;
+    std::cout << indent(is_left_history) << "+ FunctionDefinition"
+              << " (" << location << ")" << std::endl;
 
     is_left_history.push_back(is_left);
 
@@ -122,7 +130,8 @@ void AST_StatementList::print(std::ostream &os, SymbolTable *symbol_table,
                               bool              is_left,
                               std::vector<bool> is_left_history) const
 {
-    std::cout << indent(is_left_history) << "+ Statements" << std::endl;
+    std::cout << indent(is_left_history) << "+ Statements"
+              << " (" << location << ")" << std::endl;
 
     is_left_history.push_back(is_left);
 
@@ -138,7 +147,8 @@ void AST_ParameterList::print(std::ostream &os, SymbolTable *symbol_table,
                               bool              is_left,
                               std::vector<bool> is_left_history) const
 {
-    std::cout << indent(is_left_history) << "+ Parameters" << std::endl;
+    std::cout << indent(is_left_history) << "+ Parameters"
+              << " (" << location << ")" << std::endl;
 
     is_left_history.push_back(is_left);
 
@@ -154,7 +164,8 @@ void AST_ExpressionList::print(std::ostream &os, SymbolTable *symbol_table,
                                bool              is_left,
                                std::vector<bool> is_left_history) const
 {
-    std::cout << indent(is_left_history) << "+ Expressions" << std::endl;
+    std::cout << indent(is_left_history) << "+ Expressions"
+              << " (" << location << ")" << std::endl;
 
     is_left_history.push_back(is_left);
 
@@ -169,7 +180,8 @@ void AST_ExpressionList::print(std::ostream &os, SymbolTable *symbol_table,
 void AST_Return::print(std::ostream &os, SymbolTable *symbol_table,
                        bool is_left, std::vector<bool> is_left_history) const
 {
-    os << indent(is_left_history) << "+ Return" << std::endl;
+    os << indent(is_left_history) << "+ Return"
+       << " (" << location << ")" << std::endl;
 
     is_left_history.push_back(is_left);
 
@@ -184,7 +196,8 @@ void AST_Return::print(std::ostream &os, SymbolTable *symbol_table,
 void AST_If::print(std::ostream &os, SymbolTable *symbol_table, bool is_left,
                    std::vector<bool> is_left_history) const
 {
-    std::cout << indent(is_left_history) << "+ If" << std::endl;
+    std::cout << indent(is_left_history) << "+ If"
+              << " (" << location << ")" << std::endl;
 
     is_left_history.push_back(is_left);
 
@@ -198,7 +211,8 @@ void AST_VariableDefinition::print(std::ostream &os, SymbolTable *symbol_table,
                                    bool              is_left,
                                    std::vector<bool> is_left_history) const
 {
-    os << indent(is_left_history) << "+ Definition" << std::endl;
+    os << indent(is_left_history) << "+ Definition"
+       << " (" << location << ")" << std::endl;
 
     is_left_history.push_back(is_left);
 
@@ -212,7 +226,8 @@ void AST_VariableAssignment::print(std::ostream &os, SymbolTable *symbol_table,
                                    bool              is_left,
                                    std::vector<bool> is_left_history) const
 {
-    os << indent(is_left_history) << "+ Assignment" << std::endl;
+    os << indent(is_left_history) << "+ Assignment"
+       << " (" << location << ")" << std::endl;
 
     is_left_history.push_back(is_left);
 
