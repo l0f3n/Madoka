@@ -22,27 +22,13 @@ struct Quad
         RETURN,
     };
 
-    Quad(Operation, Symbol *, Symbol *, Symbol *);
-    Quad(Operation, Symbol *, long, Symbol *);
-    Quad(Operation, long, Symbol *, Symbol *);
-    Quad(Operation, double, Symbol *, Symbol *);
+    Quad(Operation, long, long, long);
 
+    // NOTE: Integer values, doubles and symbol table indices are stored as long
     Operation operation;
-    union
-    {
-        long    integer_value1;
-        double  real_value1;
-        Symbol *operand1;
-    };
-
-    union
-    {
-        long    integer_value2;
-        double  real_value2;
-        Symbol *operand2;
-    };
-
-    Symbol *dest;
+    long      operand1;
+    long      operand2;
+    long      dest;
 
     friend std::ostream &operator<<(std::ostream &os, Quad const &q);
 };

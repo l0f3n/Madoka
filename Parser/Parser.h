@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AST/AST.h"
+#include "Quads/Quads.h"
 #include "SymbolTable/SymbolTable.h"
 #include "Tokenizer/Tokenizer.h"
 #include <iostream>
@@ -8,8 +9,7 @@
 class Parser
 {
   public:
-    Parser(std::istream &is);
-    Parser(Tokenizer &tokenizer, SymbolTable *symbol_table);
+    Parser(Tokenizer &, SymbolTable *, Quads &);
 
     AST_Node *parse();
 
@@ -46,4 +46,5 @@ class Parser
 
     Tokenizer    tokenizer;
     SymbolTable *symbol_table;
+    Quads        quads;
 };

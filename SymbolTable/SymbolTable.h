@@ -29,25 +29,30 @@ class SymbolTable
 
     int enclosing_scope() const;
 
-    // TODO: This should possibly return int
-    Symbol *generate_temporary_variable();
-    long    get_next_label();
+    int generate_temporary_variable(int type);
+    int get_next_label();
 
     void print(std::ostream &os);
 
   private:
     int hash(const std::string &name) const;
 
+    // TODO: Use vector instead of array and reserve these values to begin with,
+    // instead of setting hard upper limit
     static const int MAX_HASH_VALUE = 1024;
     static const int MAX_SYMBOLS    = 1024;
     static const int MAX_LEVELS     = 1024;
 
-    std::array<Symbol *, MAX_SYMBOLS> symbol_table;
-    std::array<int, MAX_LEVELS>       block_table;
-    std::array<int, MAX_HASH_VALUE>   hash_table;
+    std::array<Symbol *, MAX_SYMBOLS> symbol_table{};
+    std::array<int, MAX_LEVELS>       block_table{};
+    std::array<int, MAX_HASH_VALUE>   hash_table{};
 
-    int current_symbol_index;
-    int current_level;
+    int current_symbol_index{-1};
+    int current_level{0};
+    int current_temporary_variable_number{-1};
+    int current_label_number;
 
-    // long label_number;
+    Location no_location{Location{-1, -1, -1}};
+
+    int void_type{-1};
 };

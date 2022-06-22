@@ -84,7 +84,11 @@ void AST_FunctionCall::print(std::ostream &os, SymbolTable *symbol_table,
     is_left_history.push_back(is_left);
 
     ident->print(os, symbol_table, true, is_left_history);
-    arguments->print(os, symbol_table, false, is_left_history);
+
+    if (arguments)
+    {
+        arguments->print(os, symbol_table, false, is_left_history);
+    }
 
     is_left_history.pop_back();
 }

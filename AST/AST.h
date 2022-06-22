@@ -23,7 +23,7 @@ class AST_Node
     virtual void print(std::ostream &os, SymbolTable *symbol_table,
                        bool is_left, std::vector<bool> is_left_history) const;
 
-    virtual Symbol *generate_quads(Quads *quads) const;
+    virtual int generate_quads(Quads *quads) const;
 };
 
 class AST_ParameterList : public AST_Node
@@ -37,7 +37,7 @@ class AST_ParameterList : public AST_Node
 
     void add_parameter(AST_Identifier *parameter);
 
-    Symbol *generate_quads(Quads *quads) const override;
+    int generate_quads(Quads *quads) const override;
 
     std::vector<AST_Identifier *> parameters;
 };
@@ -54,7 +54,7 @@ class AST_If : public AST_Statement
     void print(std::ostream &os, SymbolTable *symbol_table, bool is_left,
                std::vector<bool> is_left_history) const override;
 
-    Symbol *generate_quads(Quads *quads) const override;
+    int generate_quads(Quads *quads) const override;
 
     AST_Expression    *condition;
     AST_StatementList *body;
@@ -69,7 +69,7 @@ class AST_Return : public AST_Statement
     void print(std::ostream &os, SymbolTable *symbol_table, bool is_left,
                std::vector<bool> is_left_history) const override;
 
-    Symbol *generate_quads(Quads *quads) const override;
+    int generate_quads(Quads *quads) const override;
 
     AST_ExpressionList *return_values;
 };
@@ -83,7 +83,7 @@ class AST_VariableDefinition : public AST_Statement
     void print(std::ostream &os, SymbolTable *symbol_table, bool is_left,
                std::vector<bool> is_left_history) const override;
 
-    Symbol *generate_quads(Quads *quads) const override;
+    int generate_quads(Quads *quads) const override;
 
     AST_Identifier *lhs;
     AST_Expression *rhs;
@@ -98,7 +98,7 @@ class AST_VariableAssignment : public AST_Statement
     void print(std::ostream &os, SymbolTable *symbol_table, bool is_left,
                std::vector<bool> is_left_history) const override;
 
-    Symbol *generate_quads(Quads *quads) const override;
+    int generate_quads(Quads *quads) const override;
 
     AST_Identifier *lhs;
     AST_Expression *rhs;
@@ -113,7 +113,7 @@ class AST_ExpressionList : public AST_Node
     void print(std::ostream &os, SymbolTable *symbol_table, bool is_left,
                std::vector<bool> is_left_history) const override;
 
-    Symbol *generate_quads(Quads *quads) const override;
+    int generate_quads(Quads *quads) const override;
 
     void add_expression(AST_Expression *expression);
 
@@ -131,7 +131,7 @@ class AST_StatementList : public AST_Statement
 
     void add_statement(AST_Statement *statement);
 
-    Symbol *generate_quads(Quads *quads) const override;
+    int generate_quads(Quads *quads) const override;
 
     std::vector<AST_Statement *> statements;
 };
@@ -146,7 +146,7 @@ class AST_FunctionDefinition : public AST_Statement
     void print(std::ostream &os, SymbolTable *symbol_table, bool is_left,
                std::vector<bool> is_left_history) const override;
 
-    Symbol *generate_quads(Quads *quads) const override;
+    int generate_quads(Quads *quads) const override;
 
     AST_Identifier    *name;
     AST_ParameterList *parameter_list;
@@ -165,7 +165,7 @@ class AST_Identifier : public AST_Expression
     void print(std::ostream &os, SymbolTable *symbol_table, bool is_left,
                std::vector<bool> is_left_history) const override;
 
-    Symbol *generate_quads(Quads *quads) const override;
+    int generate_quads(Quads *quads) const override;
 
     int symbol_index;
 };
@@ -179,7 +179,7 @@ class AST_FunctionCall : public AST_Expression, public AST_Statement
     void print(std::ostream &os, SymbolTable *symbol_table, bool is_left,
                std::vector<bool> is_left_history) const override;
 
-    Symbol *generate_quads(Quads *quads) const override;
+    int generate_quads(Quads *quads) const override;
 
     AST_Identifier     *ident;
     AST_ExpressionList *arguments;
@@ -193,7 +193,7 @@ class AST_Integer : public AST_Expression
     void print(std::ostream &os, SymbolTable *symbol_table, bool is_left,
                std::vector<bool> is_left_history) const override;
 
-    Symbol *generate_quads(Quads *quads) const override;
+    int generate_quads(Quads *quads) const override;
 
     long value;
 };
@@ -206,7 +206,7 @@ class AST_Real : public AST_Expression
     void print(std::ostream &os, SymbolTable *symbol_table, bool is_left,
                std::vector<bool> is_left_history) const override;
 
-    Symbol *generate_quads(Quads *quads) const override;
+    int generate_quads(Quads *quads) const override;
 
     double value;
 };
@@ -220,7 +220,7 @@ class AST_UnaryMinus : public AST_Expression
     void print(std::ostream &os, SymbolTable *symbol_table, bool is_left,
                std::vector<bool> is_left_history) const override;
 
-    Symbol *generate_quads(Quads *quads) const override;
+    int generate_quads(Quads *quads) const override;
 
     AST_Expression *expr;
 };
@@ -247,7 +247,7 @@ class AST_Plus : public AST_BinaryOperation
   public:
     AST_Plus(AST_Expression *lhs, AST_Expression *rhs);
 
-    Symbol *generate_quads(Quads *quads) const override;
+    int generate_quads(Quads *quads) const override;
 };
 
 class AST_Minus : public AST_BinaryOperation
@@ -255,7 +255,7 @@ class AST_Minus : public AST_BinaryOperation
   public:
     AST_Minus(AST_Expression *lhs, AST_Expression *rhs);
 
-    Symbol *generate_quads(Quads *quads) const override;
+    int generate_quads(Quads *quads) const override;
 };
 
 class AST_Multiplication : public AST_BinaryOperation
@@ -263,7 +263,7 @@ class AST_Multiplication : public AST_BinaryOperation
   public:
     AST_Multiplication(AST_Expression *lhs, AST_Expression *rhs);
 
-    Symbol *generate_quads(Quads *quads) const override;
+    int generate_quads(Quads *quads) const override;
 };
 
 class AST_Division : public AST_BinaryOperation
@@ -271,5 +271,5 @@ class AST_Division : public AST_BinaryOperation
   public:
     AST_Division(AST_Expression *lhs, AST_Expression *rhs);
 
-    Symbol *generate_quads(Quads *quads) const override;
+    int generate_quads(Quads *quads) const override;
 };

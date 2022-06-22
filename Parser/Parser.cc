@@ -1,20 +1,15 @@
 #include "Parser.h"
 #include "AST/AST.h"
 #include "Error/Error.h"
+#include "Quads/Quads.h"
 #include "Tokenizer/Tokenizer.h"
 #include <iostream>
 #include <sstream>
 #include <stdlib.h>
 #include <string>
 
-Parser::Parser(std::istream &is)
-    : tokenizer{Tokenizer{is}}, symbol_table{new SymbolTable()}
-{
-    tokenizer.tokenize();
-}
-
-Parser::Parser(Tokenizer &tokenizer, SymbolTable *symbol_table)
-    : tokenizer{tokenizer}, symbol_table{symbol_table}
+Parser::Parser(Tokenizer &tokenizer, SymbolTable *symbol_table, Quads &quads)
+    : tokenizer{tokenizer}, symbol_table{symbol_table}, quads{quads}
 {}
 
 Token Parser::expect(Token::Kind kind)
@@ -87,7 +82,17 @@ AST_Node *Parser::parse_start() { return parse_statement_list(); }
 
 AST_StatementList *Parser::parse_statement_list()
 {
-    AST_Statement     *statement      = parse_statement();
+    AST_Statement *statement = parse_statement();
+
+    // TODO: This is weird, but works for now
+    AST_FunctionDefinition *function_definition =
+        dynamic_cast<AST_FunctionDefinition *>(statement);
+
+    if (function_definition != nullptr)
+    {
+        quads.generate_quads(function_definition);
+    }
+
     AST_StatementList *statement_list = parse_statement_list_tail();
 
     if (statement_list != nullptr)
@@ -142,28 +147,36 @@ AST_Statement *Parser::parse_statement()
                 {
                     tokenizer.eat();
 
-                    Token token_type = expect(Token::Kind::Identifier);
+                    Token type_token = expect(Token::Kind::Identifier);
 
                     expect(Token::Kind::Equals);
 
                     AST_Expression *expression = parse_expression();
 
                     // NOTE: We are done parsing the definition, now we can do
-                    // all checks for correctsness
+                    // all checks for correctness
 
                     int type_index =
-                        symbol_table->lookup_symbol(token_type.text);
+                        symbol_table->lookup_symbol(type_token.text);
 
                     if (type_index == -1)
                     {
-                        error(token_type.location)
-                            << "Unknown type '" << token_type.text << "'"
+                        error(type_token.location)
+                            << "Unknown type '" << type_token.text << "'"
                             << std::endl;
+                        std::exit(1);
+                    }
+                    else if (symbol_table->get_symbol(type_index)->tag !=
+                             Symbol::Tag::Type)
+                    {
+                        error(type_token.location)
+                            << "Symbol '" << type_token.text
+                            << "' is not a type" << std::endl;
                         std::exit(1);
                     }
 
                     int symbol_index = symbol_table->insert_variable(
-                        token_type.location, name_token.text, type_index);
+                        name_token.location, name_token.text, type_index);
 
                     AST_Identifier *identifier =
                         new AST_Identifier(symbol_index);

@@ -34,9 +34,10 @@ void CodeGenerator::store(std::ostream &os, Symbol *symbol,
 
 void CodeGenerator::generate_code(Quads *quads, std::ostream &os) const
 {
+    /*
     // TODO: Check that we have a main function, then generate this entry code
     // and make it call the main function
-    generate_entry_code(os);
+     generate_entry_code(os);
 
     for (Quad *quad : *quads)
     {
@@ -105,24 +106,29 @@ void CodeGenerator::generate_code(Quads *quads, std::ostream &os) const
     // TODO: This should be placed at the end of the main function instead of at
     // the end of the program
     generate_exit_code(os);
+    */
 }
 
 void CodeGenerator::generate_entry_code(std::ostream &os) const
 {
+    /*
     os << "section .text" << std::endl;
     os << "\t global _start" << std::endl;
     os << std::endl;
     os << "_start:" << std::endl;
     // os << "\t sub rsp, " << symbolTable->offset << std::endl;
+    */
 }
 
 void CodeGenerator::generate_exit_code(std::ostream &os) const
 {
-    os << std::endl;
-    os << '\t' << "jmp _exit" << std::endl;
-    os << std::endl;
-    os << "_exit:" << std::endl;
-    os << '\t' << "mov rax, 0x3c" << std::endl;
-    os << '\t' << "mov rdi, 0x00" << std::endl;
-    os << '\t' << "syscall" << std::endl;
+    /*
+        os << std::endl;
+        os << '\t' << "jmp _exit" << std::endl;
+        os << std::endl;
+        os << "_exit:" << std::endl;
+        os << '\t' << "mov rax, 0x3c" << std::endl;
+        os << '\t' << "mov rdi, 0x00" << std::endl;
+        os << '\t' << "syscall" << std::endl;
+    */
 }

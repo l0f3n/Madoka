@@ -2,18 +2,21 @@
 #include "Error/Error.h"
 #include "SymbolTable/Symbol.h"
 #include "Tokenizer/Token.h"
+#include <sstream>
 #include <string>
 
 SymbolTable::SymbolTable()
-    : symbol_table{}, block_table{}, current_symbol_index{-1}
 {
+    std::fill(std::begin(symbol_table), std::end(symbol_table), nullptr);
+    std::fill(std::begin(block_table), std::end(block_table), -1);
     std::fill(std::begin(hash_table), std::end(hash_table), -1);
 
-    Location location{-1, -1, -1};
+    void_type = insert_type(no_location, "void", 0);
+    insert_type(no_location, "integer", 8);
+    insert_type(no_location, "real", 8);
 
-    insert_type(location, "void", 0);
-    insert_type(location, "integer", 8);
-    insert_type(location, "real", 8);
+    insert_function(no_location, "#global");
+    open_scope();
 }
 
 SymbolTable::~SymbolTable()
@@ -35,24 +38,22 @@ void SymbolTable::print(std::ostream &os)
     }
 }
 
-Symbol *SymbolTable::generate_temporary_variable()
+int SymbolTable::generate_temporary_variable(int type)
 {
-    // TODO: Implement this
-    /*
-    Symbol *temp = new Symbol(std::to_string(1), "Unknown");
-    add_symbol(temp);
-    return temp;
-    */
-    return nullptr;
+    if (type == void_type)
+    {
+        internal_compiler_error()
+            << "Cannot generate a temporary variable of type void" << std::endl;
+        std::exit(1);
+    }
+
+    std::ostringstream oss{};
+    oss << "#TEMP_" << ++current_temporary_variable_number;
+
+    return insert_variable(no_location, oss.str(), type);
 }
 
-long SymbolTable::get_next_label()
-{
-
-    // TODO: Implement this
-    // return ++label_number;
-    return 0;
-}
+int SymbolTable::get_next_label() { return ++current_label_number; }
 
 int SymbolTable::insert_variable(Location const    &location,
                                  const std::string &name, int type)
@@ -70,19 +71,21 @@ int SymbolTable::insert_variable(Location const    &location,
         return symbol_index;
     }
 
-    // TODO: Assert non-null pointer
     VariableSymbol *variable_symbol = dynamic_cast<VariableSymbol *>(symbol);
+    ASSERT(variable_symbol != nullptr);
 
     variable_symbol->tag  = Symbol::Tag::Variable;
     variable_symbol->type = type;
 
-    // TODO: Assert non-null pointer
     FunctionSymbol *function_symbol =
         dynamic_cast<FunctionSymbol *>(symbol_table[enclosing_scope()]);
+    ASSERT(function_symbol != nullptr);
+
     variable_symbol->offset = function_symbol->activation_record_size;
 
-    // TODO: Assert non-null pointer
     TypeSymbol *type_symbol = dynamic_cast<TypeSymbol *>(symbol_table[type]);
+    ASSERT(type_symbol != nullptr);
+
     function_symbol->activation_record_size += type_symbol->size;
 
     return symbol_index;
@@ -102,9 +105,8 @@ int SymbolTable::insert_function(Location const    &location,
         std::exit(1);
     }
 
-    // NOTE: At this point, this is guaranteed to be a FunctionSymbol
-    // TODO: Assert non-null pointer
     FunctionSymbol *function_symbol = dynamic_cast<FunctionSymbol *>(symbol);
+    ASSERT(function_symbol != nullptr);
 
     function_symbol->tag   = Symbol::Tag::Function;
     function_symbol->label = get_next_label();
@@ -127,9 +129,8 @@ int SymbolTable::insert_type(Location const &location, const std::string &name,
         std::exit(1);
     }
 
-    // NOTE: At this point, this is guaranteed to be a TypeSymbol
-    // TODO: Assert non-null pointer
     TypeSymbol *type_symbol = dynamic_cast<TypeSymbol *>(symbol);
+    ASSERT(type_symbol != nullptr);
 
     type_symbol->tag  = Symbol::Tag::Type;
     type_symbol->size = size;
