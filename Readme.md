@@ -1,13 +1,6 @@
 
 # Readme
 
-
-## Supported math functions
-
-```
-sin, cos, tan, log, abs, sqrt, ceil, floor, round
-```
-
 ## Grammar
 
 ```
@@ -18,15 +11,13 @@ StatementList -> Statement StatementListTail
 StatementListTail ->   StatementList
                      | e
  
-Statement ->   IDENTIFIER StatementTail
+Statement ->   IDENTIFIER ':' IDENTIFIER '=' Expression
+             | IDENTIFIER '=' Expression
+             | IDENTIFIER '(' OptionalArgumentList ')'
              | 'return' OptionalArgumentList
              | 'function' IDENTIFIER '(' OptionalParameterList ')' OptionalReturn '{' StatementList '}'
              | 'if' '(' Expression ')' '{' StatementList '}'
              | 'while' '(' Expression ')' '{' StatementList '}'
-
-StatementTail ->   ':' IDENTIFIER '=' Expression
-                 | '=' Expression
-                 | '(' OptionalArgumentList ')'
 
 OptionalReturn ->  '->' '(' ParameterList ')'
                   | e
@@ -67,9 +58,7 @@ MinusTerm ->   '-' Term
              | Term
 
 Term ->   NUMBER
-        | IDENTIFIER TermTail
+        | IDENTIFIER
+        | IDENTIFIER '(' OptionalArgumentList ')'
         | '(' Expression ')'
-
-TermTail ->   '(' OptionalArgumentList ')'
-            | e
 ```
