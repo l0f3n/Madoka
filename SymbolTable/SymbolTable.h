@@ -12,16 +12,20 @@ class SymbolTable
     SymbolTable();
     ~SymbolTable();
 
-    int insert_variable(Location const &, std::string const &, int type);
-    int insert_function(Location const &, std::string const &);
-    int insert_type(Location const &, std::string const &, int size);
-
     int insert_symbol(Location const &, const std::string &name,
                       Symbol::Tag tag);
-    // int insert_symbol(const std::string &name, Symbol::Tag tag);
+    int insert_type(Location const &, std::string const &, int size);
+    int insert_variable(Location const &, std::string const &, int type);
+    int insert_function(Location const &, std::string const &);
+    int insert_parameter(Location const &, std::string const &, int type);
+
+    Symbol          *get_symbol(int symbol_index) const;
+    TypeSymbol      *get_type_symbol(int symbol_index) const;
+    VariableSymbol  *get_variable_symbol(int symbol_index) const;
+    FunctionSymbol  *get_function_symbol(int symbol_index) const;
+    ParameterSymbol *get_parameter_symbol(int symbol_index) const;
 
     int     lookup_symbol(const std::string &name) const;
-    Symbol *get_symbol(int symbol_index) const;
     Symbol *remove_symbol(int symbol_index);
 
     void open_scope();
@@ -36,6 +40,7 @@ class SymbolTable
 
     std::string const &get_type_name(int type_index) const;
 
+    // NOTE: These get their proper values in the constructor
     int type_void{-1};
     int type_integer{-1};
     int type_real{-1};

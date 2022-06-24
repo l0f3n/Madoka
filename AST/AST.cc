@@ -1,4 +1,5 @@
 #include "AST.h"
+#include "Error/Error.h"
 #include "SymbolTable/Symbol.h"
 #include "Tokenizer/Token.h"
 #include <string>
@@ -14,6 +15,9 @@ AST_BinaryOperation::AST_BinaryOperation(Location const  location,
 
 AST_BinaryOperation::~AST_BinaryOperation()
 {
+    ASSERT(lhs != nullptr);
+    ASSERT(rhs != nullptr);
+
     delete lhs;
     delete rhs;
 }
@@ -25,6 +29,9 @@ AST_If::AST_If(Location const location, AST_Expression *condition,
 
 AST_If::~AST_If()
 {
+    ASSERT(condition != nullptr);
+    ASSERT(body != nullptr);
+
     delete condition;
     delete body;
 }
@@ -34,7 +41,13 @@ AST_Return::AST_Return(Location const      location,
     : AST_Node(location), return_values{return_values}
 {}
 
-AST_Return::~AST_Return() { delete return_values; }
+AST_Return::~AST_Return()
+{
+    if (return_values)
+    {
+        delete return_values;
+    }
+}
 
 AST_FunctionDefinition::AST_FunctionDefinition(
     Location const location, AST_Identifier *name,
@@ -46,9 +59,21 @@ AST_FunctionDefinition::AST_FunctionDefinition(
 
 AST_FunctionDefinition::~AST_FunctionDefinition()
 {
+    ASSERT(name != nullptr);
     delete name;
-    delete parameter_list;
-    delete return_values;
+
+    if (parameter_list)
+    {
+        delete parameter_list;
+    }
+
+    if (return_values)
+    {
+
+        delete return_values;
+    }
+
+    ASSERT(body != nullptr);
     delete body;
 }
 
@@ -60,6 +85,9 @@ AST_VariableDefinition::AST_VariableDefinition(Location const  location,
 
 AST_VariableDefinition::~AST_VariableDefinition()
 {
+    ASSERT(lhs != nullptr);
+    ASSERT(rhs != nullptr);
+
     delete lhs;
     delete rhs;
 }
@@ -72,48 +100,41 @@ AST_VariableAssignment::AST_VariableAssignment(Location const  location,
 
 AST_VariableAssignment::~AST_VariableAssignment()
 {
+    ASSERT(lhs != nullptr);
+    ASSERT(rhs != nullptr);
+
     delete lhs;
     delete rhs;
 }
 
-AST_ExpressionList::AST_ExpressionList(Location const  location,
-                                       AST_Expression *last_expression)
-    : AST_Node(location)
-{
-    add_expression(last_expression);
-}
+AST_ExpressionList::AST_ExpressionList(Location const      location,
+                                       AST_Expression     *expression,
+                                       AST_ExpressionList *rest_expressions)
+    : AST_Node(location), expression{expression}, rest_expressions{
+                                                      rest_expressions}
+{}
 
 AST_ExpressionList::~AST_ExpressionList()
 {
-    for (AST_Expression *expression : expressions)
+    ASSERT(expression != nullptr);
+    delete expression;
+
+    if (rest_expressions)
     {
-        delete expression;
+        delete rest_expressions;
     }
 }
 
-void AST_ExpressionList::add_expression(AST_Expression *parameter)
-{
-    expressions.push_back(parameter);
-}
-
-AST_ParameterList::AST_ParameterList(Location const  location,
-                                     AST_Identifier *last_parameter)
-    : AST_Node(location)
-{
-    add_parameter(last_parameter);
-}
+AST_ParameterList::AST_ParameterList(Location const     location,
+                                     AST_Identifier    *parameter,
+                                     AST_ParameterList *rest_parameters)
+    : AST_Node(location), parameter{parameter}, rest_parameters{rest_parameters}
+{}
 
 AST_ParameterList::~AST_ParameterList()
 {
-    for (AST_Identifier *parameter : parameters)
-    {
-        delete parameter;
-    }
-}
-
-void AST_ParameterList::add_parameter(AST_Identifier *parameter)
-{
-    parameters.push_back(parameter);
+    delete parameter;
+    delete rest_parameters;
 }
 
 AST_StatementList::AST_StatementList(Location const location,

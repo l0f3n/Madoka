@@ -99,25 +99,7 @@ int AST_Division::generate_quads(Quads *quads) const { return -1; }
 
 int AST_ParameterList::generate_quads(Quads *quads) const { return -1; }
 
-int AST_ExpressionList::generate_quads(Quads *quads) const
-{
-    int argument;
-
-    for (auto it{expressions.rbegin()}; it != expressions.rend();)
-    {
-        argument = (*it++)->generate_quads(quads);
-
-        // NOTE: This function is only used for argument list for function
-        // calls at the moment, so this is fine. If it ends up being used
-        // for something else later this needs to change
-        // TODO: Oops, it is also used for multiple return values. We can't
-        // do it like this. Add returnlist/argumentlist or something to
-        // distinguish between them? quads->add_quad( new
-        // Quad(Quad::Operation::PARAM, argument, nullptr, nullptr));
-    }
-
-    return argument;
-}
+int AST_ExpressionList::generate_quads(Quads *quads) const { return -1; }
 
 int AST_StatementList::generate_quads(Quads *quads) const
 {
@@ -162,12 +144,14 @@ int AST_FunctionDefinition::generate_quads(Quads *quads) const
 int AST_Return::generate_quads(Quads *quads) const
 {
     // TODO: Support multiple return values
+    /*
     if (return_values != nullptr && return_values->expressions.size() > 1)
     {
         std::cout << "Erorr: Can't return multiple values from function yet"
                   << std::endl;
         std::exit(1);
     }
+    */
 
     int return_value =
         return_values != nullptr ? return_values->generate_quads(quads) : -1;

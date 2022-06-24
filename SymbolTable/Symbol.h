@@ -11,20 +11,21 @@ class Symbol
     {
         Undefined,
 
+        Type,
         Variable,
         Function,
-        Type,
+        Parameter,
     };
 
     Symbol(Location const &location, const std::string &name);
     virtual ~Symbol();
 
-    Location const    location;
-    std::string const name;
-    Tag               tag;
-    int               type;
-    int               level;
-    int               hash_link;
+    Location const    location{Location{-1, -1, -1, -1}};
+    std::string const name{""};
+    Tag               tag{Symbol::Tag::Undefined};
+    int               type{-1};
+    int               level{-1};
+    int               hash_link{-1};
 
     friend std::ostream &operator<<(std::ostream &os, Symbol &symbol);
 };
@@ -36,7 +37,7 @@ class VariableSymbol : public Symbol
   public:
     VariableSymbol(Location const &location, const std::string &name);
 
-    int offset;
+    int offset{-1};
 };
 
 class FunctionSymbol : public Symbol
@@ -44,8 +45,18 @@ class FunctionSymbol : public Symbol
   public:
     FunctionSymbol(Location const &location, const std::string &name);
 
-    int label;
-    int activation_record_size;
+    int first_parameter{-1};
+    int label{-1};
+    int activation_record_size{0};
+};
+
+class ParameterSymbol : public Symbol
+{
+  public:
+    ParameterSymbol(Location const &location, const std::string &name);
+
+    int offset{-1};
+    int next_parameter{-1};
 };
 
 class TypeSymbol : public Symbol
@@ -53,5 +64,5 @@ class TypeSymbol : public Symbol
   public:
     TypeSymbol(Location const &location, const std::string &name);
 
-    int size; // In bytes
+    int size{-1}; // In bytes
 };

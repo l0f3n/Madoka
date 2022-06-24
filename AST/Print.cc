@@ -1,5 +1,6 @@
 #include "AST.h"
 #include "Tokenizer/Token.h"
+#include <Error/Error.h>
 #include <iostream>
 #include <sstream>
 #include <vector>
@@ -147,34 +148,62 @@ void AST_ParameterList::print(std::ostream &os, SymbolTable *symbol_table,
                               bool              is_left,
                               std::vector<bool> is_left_history) const
 {
-    std::cout << indent(is_left_history) << "+ Parameters"
-              << " (" << location << ")" << std::endl;
-
-    is_left_history.push_back(is_left);
-
-    for (int i = parameters.size() - 1; i >= 0; --i)
+    // NOTE: We cheat a bit here when we print the parameters. Is left is always
+    // going to be true the first time, so we use it print parameters and add
+    // history, but then we set the rest to false not make them not print
+    // parameters
+    if (is_left)
     {
-        parameters[i]->print(os, symbol_table, i != 0, is_left_history);
+
+        std::cout << indent(is_left_history) << "+ Parameters"
+                  << " (" << location << ")" << std::endl;
+
+        is_left_history.push_back(is_left);
     }
 
-    is_left_history.pop_back();
+    ASSERT(parameter != nullptr);
+    parameter->print(os, symbol_table, false, is_left_history);
+
+    if (rest_parameters)
+    {
+        rest_parameters->print(os, symbol_table, false, is_left_history);
+    }
+
+    if (is_left)
+    {
+        is_left_history.pop_back();
+    }
 }
 
 void AST_ExpressionList::print(std::ostream &os, SymbolTable *symbol_table,
                                bool              is_left,
                                std::vector<bool> is_left_history) const
 {
-    std::cout << indent(is_left_history) << "+ Expressions"
-              << " (" << location << ")" << std::endl;
-
-    is_left_history.push_back(is_left);
-
-    for (int i = expressions.size() - 1; i >= 0; --i)
+    // NOTE: We cheat a bit here when we print the parameters. Is left is always
+    // going to be true the first time, so we use it print parameters and add
+    // history, but then we set the rest to false not make them not print
+    // parameters
+    if (is_left)
     {
-        expressions[i]->print(os, symbol_table, i != 0, is_left_history);
+
+        std::cout << indent(is_left_history) << "+ Expressions"
+                  << " (" << location << ")" << std::endl;
+
+        is_left_history.push_back(is_left);
     }
 
-    is_left_history.pop_back();
+    ASSERT(expression != nullptr);
+    expression->print(os, symbol_table, false, is_left_history);
+
+    if (rest_expressions)
+    {
+        rest_expressions->print(os, symbol_table, false, is_left_history);
+    }
+
+    if (is_left)
+    {
+        is_left_history.pop_back();
+    }
 }
 
 void AST_Return::print(std::ostream &os, SymbolTable *symbol_table,

@@ -4,21 +4,25 @@
 Symbol::~Symbol() {}
 
 Symbol::Symbol(Location const &location, const std::string &name)
-    : location{location}, name{name}, tag{Symbol::Tag::Undefined}, level{-1},
-      hash_link{-1}
+    : location{location}, name{name}
+{}
+
+TypeSymbol::TypeSymbol(Location const &location, std::string const &name)
+    : Symbol(location, name)
 {}
 
 VariableSymbol::VariableSymbol(Location const    &location,
                                const std::string &name)
-    : Symbol(location, name), offset{-1}
+    : Symbol(location, name)
 {}
 
 FunctionSymbol::FunctionSymbol(Location const    &location,
                                const std::string &name)
-    : Symbol(location, name), label{-1}, activation_record_size{0}
+    : Symbol(location, name)
 {}
 
-TypeSymbol::TypeSymbol(Location const &location, std::string const &name)
+ParameterSymbol::ParameterSymbol(Location const    &location,
+                                 std::string const &name)
     : Symbol(location, name)
 {}
 
@@ -33,10 +37,11 @@ std::ostream &operator<<(std::ostream &os, Symbol::Tag &tag)
 {
     switch (tag)
     {
-        case Symbol::Undefined: return os << "Undefined";
-        case Symbol::Variable: return os << "Variable";
-        case Symbol::Function: return os << "Function";
-        case Symbol::Type: return os << "Type";
-        default: return os << "Unknwon tag";
+    case Symbol::Undefined: return os << "Undefined";
+    case Symbol::Type: return os << "Type";
+    case Symbol::Variable: return os << "Variable";
+    case Symbol::Function: return os << "Function";
+    case Symbol::Parameter: return os << "Parameter";
+    default: return os << "Unknown tag";
     }
 }

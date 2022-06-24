@@ -192,10 +192,7 @@ AST_Statement *Parser::parse_statement()
 
             if (symbol_index == -1)
             {
-                error(name_token.location)
-                    << "Reference to undefined variable '" << name_token.text
-                    << "'" << std::endl;
-                std::exit(1);
+                report_parse_error_undefined_reference(name_token);
             }
 
             AST_Identifier *ident =
@@ -219,10 +216,7 @@ AST_Statement *Parser::parse_statement()
 
             if (symbol_index == -1)
             {
-                error(name_token.location)
-                    << "Reference to undefined function '" << name_token.text
-                    << "'" << std::endl;
-                std::exit(1);
+                report_parse_error_undefined_reference(name_token);
             }
             else if (symbol_table->get_symbol(symbol_index)->tag !=
                      Symbol::Tag::Function)
@@ -378,17 +372,7 @@ AST_ExpressionList *Parser::parse_argument_list()
     AST_Expression     *argument      = parse_argument();
     AST_ExpressionList *argument_list = parse_argument_list_tail();
 
-    if (argument_list != nullptr)
-    {
-        argument_list->add_expression(argument);
-        return argument_list;
-    }
-    else
-    {
-        // TODO: This is the position of the last expression, but it should be
-        // the first
-        return new AST_ExpressionList(argument->location, argument);
-    }
+    return new AST_ExpressionList(argument->location, argument, argument_list);
 }
 
 AST_ExpressionList *Parser::parse_argument_list_tail()
@@ -422,13 +406,19 @@ AST_ParameterList *Parser::parse_optional_parameter_list()
 
 AST_ParameterList *Parser::parse_parameter_list()
 {
+    // TODO: We need to split these into parse_parameter_list() and
+    // parse_return_value_list() to be able to handle them differently
+
     AST_Identifier    *parameter  = parse_parameter();
     AST_ParameterList *param_list = parse_parameter_list_tail();
+
+    return new AST_ParameterList(parameter->location, parameter, param_list);
 
     // NOTE: When we have reached the end of the parameters,
     // parse_parameter_list_tail() returns nullptr. Then we create the
     // parameterlist with the last parameter and send it back up and populate it
     // with the already parsed parameters.
+    /*
     if (param_list != nullptr)
     {
         param_list->add_parameter(parameter);
@@ -437,8 +427,9 @@ AST_ParameterList *Parser::parse_parameter_list()
     else
     {
         // TODO: Same as the other two
-        return new AST_ParameterList(parameter->location, parameter);
+        return new AST_ParameterList(parameter->location, parameter, nullptr);
     }
+    */
 }
 
 AST_ParameterList *Parser::parse_parameter_list_tail()
@@ -468,9 +459,7 @@ AST_Identifier *Parser::parse_parameter()
 
     if (type_index == -1)
     {
-        error(type.location) << "Reference to undefined symbol '" << type.text
-                             << "'" << std::endl;
-        std::exit(1);
+        report_parse_error_undefined_reference(type);
     }
     else if (type_symbol->tag != Symbol::Tag::Type)
     {
@@ -480,7 +469,7 @@ AST_Identifier *Parser::parse_parameter()
     }
 
     int symbol_index =
-        symbol_table->insert_variable(name.location, name.text, type_index);
+        symbol_table->insert_parameter(name.location, name.text, type_index);
 
     return new AST_Identifier(name.location, symbol_index);
 }
@@ -578,9 +567,7 @@ AST_Expression *Parser::parse_term()
 
         if (symbol_index == -1)
         {
-            error(name.location) << "Reference to undefined symbol '"
-                                 << name.text << "'" << std::endl;
-            std::exit(1);
+            report_parse_error_undefined_reference(name);
         }
 
         AST_Identifier *ident = new AST_Identifier(name.location, symbol_index);
@@ -611,11 +598,13 @@ AST_Expression *Parser::parse_term()
         {
             Symbol *symbol = symbol_table->get_symbol(symbol_index);
 
-            if (symbol->tag != Symbol::Tag::Variable)
+            if (symbol->tag != Symbol::Tag::Variable &&
+                symbol->tag != Symbol::Tag::Parameter)
             {
-                error(name.location) << "Symbol '" << symbol->name
-                                     << "' is not a variable" << std::endl
-                                     << std::endl;
+                error(name.location)
+                    << "Symbol '" << symbol->name
+                    << "' is not a variable or parameter" << std::endl
+                    << std::endl;
                 std::exit(1);
             }
 

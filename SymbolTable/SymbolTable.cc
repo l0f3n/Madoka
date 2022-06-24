@@ -55,6 +55,29 @@ int SymbolTable::generate_temporary_variable(int type)
 
 int SymbolTable::get_next_label() { return ++current_label_number; }
 
+int SymbolTable::insert_type(Location const &location, const std::string &name,
+                             int size)
+{
+    int symbol_index = insert_symbol(location, name, Symbol::Tag::Type);
+
+    Symbol *symbol = symbol_table[symbol_index];
+
+    if (symbol->tag != Symbol::Tag::Undefined)
+    {
+        error(location) << "Type '" << name << "' already defined at "
+                        << symbol->location << std::endl;
+        std::exit(1);
+    }
+
+    TypeSymbol *type_symbol = get_type_symbol(symbol_index);
+
+    type_symbol->tag  = Symbol::Tag::Type;
+    type_symbol->size = size;
+    type_symbol->type = 0; // Void type, the first one we add
+
+    return symbol_index;
+}
+
 int SymbolTable::insert_variable(Location const    &location,
                                  const std::string &name, int type)
 {
@@ -71,21 +94,15 @@ int SymbolTable::insert_variable(Location const    &location,
         return symbol_index;
     }
 
-    VariableSymbol *variable_symbol = dynamic_cast<VariableSymbol *>(symbol);
-    ASSERT(variable_symbol != nullptr);
+    VariableSymbol *variable_symbol = get_variable_symbol(symbol_index);
 
     variable_symbol->tag  = Symbol::Tag::Variable;
     variable_symbol->type = type;
 
-    FunctionSymbol *function_symbol =
-        dynamic_cast<FunctionSymbol *>(symbol_table[enclosing_scope()]);
-    ASSERT(function_symbol != nullptr);
+    FunctionSymbol *function_symbol = get_function_symbol(enclosing_scope());
+    TypeSymbol     *type_symbol     = get_type_symbol(type);
 
     variable_symbol->offset = function_symbol->activation_record_size;
-
-    TypeSymbol *type_symbol = dynamic_cast<TypeSymbol *>(symbol_table[type]);
-    ASSERT(type_symbol != nullptr);
-
     function_symbol->activation_record_size += type_symbol->size;
 
     return symbol_index;
@@ -105,36 +122,66 @@ int SymbolTable::insert_function(Location const    &location,
         std::exit(1);
     }
 
-    FunctionSymbol *function_symbol = dynamic_cast<FunctionSymbol *>(symbol);
-    ASSERT(function_symbol != nullptr);
+    FunctionSymbol *function_symbol = get_function_symbol(symbol_index);
 
     function_symbol->tag   = Symbol::Tag::Function;
     function_symbol->label = get_next_label();
+
+    // NOTE: We already set this in the constructor, but its good to be
+    // explicit. The function doesn't know which one is its last parameter when
+    // we add it, when we actually add the parameters later they will set it
+    function_symbol->first_parameter = -1;
+
     // TODO: Set type, somehow, as well
 
     return symbol_index;
 }
 
-int SymbolTable::insert_type(Location const &location, const std::string &name,
-                             int size)
+int SymbolTable::insert_parameter(Location const    &location,
+                                  const std::string &name, int type)
 {
-    int symbol_index = insert_symbol(location, name, Symbol::Tag::Type);
+    int symbol_index = insert_symbol(location, name, Symbol::Tag::Parameter);
 
     Symbol *symbol = symbol_table[symbol_index];
 
     if (symbol->tag != Symbol::Tag::Undefined)
     {
-        error(location) << "Type '" << name << "' already defined at "
+        error(location) << "Parameter'" << name << "' already defined at "
                         << symbol->location << std::endl;
         std::exit(1);
     }
 
-    TypeSymbol *type_symbol = dynamic_cast<TypeSymbol *>(symbol);
-    ASSERT(type_symbol != nullptr);
+    ParameterSymbol *parameter_symbol = get_parameter_symbol(symbol_index);
 
-    type_symbol->tag  = Symbol::Tag::Type;
-    type_symbol->size = size;
-    type_symbol->type = 0; // Void type, the first one we add
+    parameter_symbol->tag  = Symbol::Tag::Parameter;
+    parameter_symbol->type = type;
+
+    FunctionSymbol *function_symbol = get_function_symbol(enclosing_scope());
+
+    // NOTE: This is probably pretty slow. We go through every parameter so that
+    // we can set this as the next parameter to the previous last parameter
+    if (function_symbol->first_parameter == -1)
+    {
+        function_symbol->first_parameter = symbol_index;
+    }
+    else
+    {
+        ParameterSymbol *parameter =
+            get_parameter_symbol(function_symbol->first_parameter);
+
+        while (parameter->next_parameter != -1)
+        {
+            parameter = get_parameter_symbol(parameter->next_parameter);
+        }
+
+        parameter->next_parameter = symbol_index;
+    }
+
+    // TODO: Update ARs size
+    // TODO: Set parameters offset
+
+    // parameter_symbol->previous_parameter = function_symbol->last_parameter;
+    // function_symbol->last_parameter      = symbol_index;
 
     return symbol_index;
 }
@@ -172,6 +219,11 @@ int SymbolTable::insert_symbol(Location const    &location,
     case Symbol::Tag::Type:
     {
         symbol = new TypeSymbol(location, name);
+        break;
+    }
+    case Symbol::Tag::Parameter:
+    {
+        symbol = new ParameterSymbol(location, name);
         break;
     }
     default:
@@ -230,9 +282,43 @@ int SymbolTable::lookup_symbol(const std::string &name) const
     return -1;
 }
 
+TypeSymbol *SymbolTable::get_type_symbol(int symbol_index) const
+{
+    Symbol     *symbol      = get_symbol(symbol_index);
+    TypeSymbol *type_symbol = dynamic_cast<TypeSymbol *>(symbol);
+    ASSERT(type_symbol != nullptr);
+    return type_symbol;
+}
+
+VariableSymbol *SymbolTable::get_variable_symbol(int symbol_index) const
+{
+    Symbol         *symbol          = get_symbol(symbol_index);
+    VariableSymbol *variable_symbol = dynamic_cast<VariableSymbol *>(symbol);
+    ASSERT(variable_symbol != nullptr);
+    return variable_symbol;
+}
+
+FunctionSymbol *SymbolTable::get_function_symbol(int symbol_index) const
+{
+    Symbol         *symbol          = get_symbol(symbol_index);
+    FunctionSymbol *function_symbol = dynamic_cast<FunctionSymbol *>(symbol);
+    ASSERT(function_symbol != nullptr);
+    return function_symbol;
+}
+
+ParameterSymbol *SymbolTable::get_parameter_symbol(int symbol_index) const
+{
+    Symbol          *symbol           = get_symbol(symbol_index);
+    ParameterSymbol *parameter_symbol = dynamic_cast<ParameterSymbol *>(symbol);
+    ASSERT(parameter_symbol != nullptr);
+    return parameter_symbol;
+}
+
 Symbol *SymbolTable::get_symbol(int symbol_index) const
 {
-    return symbol_table[symbol_index];
+    Symbol *symbol = symbol_table[symbol_index];
+    ASSERT(symbol != nullptr);
+    return symbol;
 }
 
 Symbol *SymbolTable::remove_symbol(int symbol_index)
