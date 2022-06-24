@@ -137,24 +137,16 @@ AST_ParameterList::~AST_ParameterList()
     delete rest_parameters;
 }
 
-AST_StatementList::AST_StatementList(Location const location,
-                                     AST_Statement *last_statement)
-    : AST_Node(location)
-{
-    add_statement(last_statement);
-}
+AST_StatementList::AST_StatementList(Location const     location,
+                                     AST_Statement     *statement,
+                                     AST_StatementList *rest_statements)
+    : AST_Node(location), statement{statement}, rest_statements(rest_statements)
+{}
 
 AST_StatementList::~AST_StatementList()
 {
-    for (AST_Statement *statement : statements)
-    {
-        delete statement;
-    }
-}
-
-void AST_StatementList::add_statement(AST_Statement *statement)
-{
-    statements.push_back(statement);
+    delete statement;
+    delete rest_statements;
 }
 
 AST_Plus::AST_Plus(Location const location, AST_Expression *lhs,

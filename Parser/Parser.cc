@@ -94,7 +94,10 @@ AST_StatementList *Parser::parse_statement_list()
     }
 
     AST_StatementList *statement_list = parse_statement_list_tail();
+    return new AST_StatementList(statement->location, statement,
+                                 statement_list);
 
+    /*
     if (statement_list != nullptr)
     {
         statement_list->add_statement(statement);
@@ -106,6 +109,7 @@ AST_StatementList *Parser::parse_statement_list()
         // in the list, but it should be the first
         return new AST_StatementList(statement->location, statement);
     }
+    */
 }
 
 AST_StatementList *Parser::parse_statement_list_tail()

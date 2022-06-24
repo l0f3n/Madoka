@@ -101,15 +101,7 @@ int AST_ParameterList::generate_quads(Quads *quads) const { return -1; }
 
 int AST_ExpressionList::generate_quads(Quads *quads) const { return -1; }
 
-int AST_StatementList::generate_quads(Quads *quads) const
-{
-    for (auto it{statements.rbegin()}; it != statements.rend();)
-    {
-        int statement = (*it++)->generate_quads(quads);
-    }
-
-    return -1;
-}
+int AST_StatementList::generate_quads(Quads *quads) const { return -1; }
 
 int AST_If::generate_quads(Quads *quads) const { return -1; }
 

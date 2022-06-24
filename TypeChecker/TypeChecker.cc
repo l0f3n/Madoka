@@ -26,6 +26,7 @@ void TypeChecker::type_check_arguments(AST_FunctionCall const *function_call,
     {
         std::string function_name =
             symbol_table->get_symbol(function_call->ident->symbol_index)->name;
+
         report_type_error(function_call->location,
                           "Too few arguments in call to function '" +
                               function_name + "'");
@@ -77,10 +78,8 @@ void TypeChecker::type_check_arguments(AST_FunctionCall const *function_call,
 
 int AST_ParameterList::type_check(TypeChecker *type_checker) const
 {
-    /*
-    report_type_error(location,
-                      "Type check for PARAMETER_LIST not implemented yet");
-    */
+    report_internal_compiler_error(
+        "AST_ParameterList::type_check() should not be called");
 
     return -1;
 }
@@ -96,9 +95,6 @@ int AST_Return::type_check(TypeChecker *type_checker) const
 
 int AST_VariableDefinition::type_check(TypeChecker *type_checker) const
 {
-    // TODO: We now get the type_checker as an argument, so we need to use
-    // type_checker->symbol_table instead. Written here for me to remember for
-    // later
     int lhs_type = lhs->type_check(type_checker);
     int rhs_type = rhs->type_check(type_checker);
 
@@ -143,23 +139,19 @@ int AST_VariableAssignment::type_check(TypeChecker *type_checker) const
 
 int AST_ExpressionList::type_check(TypeChecker *type_checker) const
 {
-    report_type_error(location,
-                      "Type check for EXPRESSIN_LIST not implemented yet");
-
+    report_internal_compiler_error(
+        "AST_ExpressionList::type_check() should not be called");
     return -1;
 }
 
 int AST_StatementList::type_check(TypeChecker *type_checker) const
 {
-    /*
-    report_type_error(location,
-                      "Type check for STATEMENT_LIST not implemented yet");
-    */
+    ASSERT(statement != nullptr);
+    statement->type_check(type_checker);
 
-    // TODO: Make it possible to iterate over statements using for each loop
-    for (auto it{statements.rbegin()}; it != statements.rend();)
+    if (rest_statements)
     {
-        (*it++)->type_check(type_checker);
+        rest_statements->type_check(type_checker);
     }
 
     return -1;
@@ -167,10 +159,7 @@ int AST_StatementList::type_check(TypeChecker *type_checker) const
 
 int AST_FunctionDefinition::type_check(TypeChecker *type_checker) const
 {
-    if (parameter_list)
-    {
-        parameter_list->type_check(type_checker);
-    }
+    // NOTE: We do not need to type check parameters
 
     if (return_values)
     {
@@ -203,16 +192,14 @@ int AST_FunctionCall::type_check(TypeChecker *type_checker) const
     type_checker->type_check_arguments(this, function->first_parameter,
                                        arguments);
 
-    report_type_error(location,
-                      "Type check for FUNCTION_CALL not implemented yet");
-
     // TODO: Since we want functions to be able to return multiple things,
     // we need to handle that in some way. We simply cant say that the
     // function has type 'real' for that reason, its needs something like
     // 'real, real', but how do we implement that, but how do we implement
     // that?
 
-    return -1;
+    // TODO: For now, lets just return integer for simplicity
+    return type_checker->symbol_table->type_integer;
 }
 
 int AST_Integer::type_check(TypeChecker *type_checker) const
@@ -240,6 +227,7 @@ int AST_Plus::type_check(TypeChecker *type_checker) const
     {
         std::string lhs_type_name =
             type_checker->symbol_table->get_type_name(lhs_type);
+
         std::string rhs_type_name =
             type_checker->symbol_table->get_type_name(rhs_type);
 
@@ -260,6 +248,7 @@ int AST_Minus::type_check(TypeChecker *type_checker) const
     {
         std::string lhs_type_name =
             type_checker->symbol_table->get_type_name(lhs_type);
+
         std::string rhs_type_name =
             type_checker->symbol_table->get_type_name(rhs_type);
 
@@ -280,6 +269,7 @@ int AST_Multiplication::type_check(TypeChecker *type_checker) const
     {
         std::string lhs_type_name =
             type_checker->symbol_table->get_type_name(lhs_type);
+
         std::string rhs_type_name =
             type_checker->symbol_table->get_type_name(rhs_type);
 
@@ -300,6 +290,7 @@ int AST_Division::type_check(TypeChecker *type_checker) const
     {
         std::string lhs_type_name =
             type_checker->symbol_table->get_type_name(lhs_type);
+
         std::string rhs_type_name =
             type_checker->symbol_table->get_type_name(rhs_type);
 

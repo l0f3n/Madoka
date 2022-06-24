@@ -135,18 +135,17 @@ class AST_ExpressionList : public AST_Node
 class AST_StatementList : public AST_Statement
 {
   public:
-    AST_StatementList(Location const, AST_Statement *last_statement);
+    AST_StatementList(Location const, AST_Statement *, AST_StatementList *);
     ~AST_StatementList();
 
     void print(std::ostream &os, SymbolTable *symbol_table, bool is_left,
                std::vector<bool> is_left_history) const override;
 
-    void add_statement(AST_Statement *statement);
-
     int generate_quads(Quads *quads) const override;
     int type_check(TypeChecker *type_checker) const override;
 
-    std::vector<AST_Statement *> statements;
+    AST_Statement     *statement;
+    AST_StatementList *rest_statements;
 };
 
 class AST_FunctionDefinition : public AST_Statement

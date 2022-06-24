@@ -5,6 +5,12 @@ std::ostream &error(Location const &location)
     return std::cout << "SyntaxError:" << location << ": ";
 }
 
+void report_internal_compiler_error(const std::string message)
+{
+    std::cout << "InternalCompilerError: " << message << std::endl;
+    std::exit(1);
+}
+
 void report_parse_error(Location const &location, std::string const message)
 {
     std::cout << "ParseError:" << location << ": " << message << std::endl;

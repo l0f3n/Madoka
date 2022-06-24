@@ -131,17 +131,32 @@ void AST_StatementList::print(std::ostream &os, SymbolTable *symbol_table,
                               bool              is_left,
                               std::vector<bool> is_left_history) const
 {
-    std::cout << indent(is_left_history) << "+ Statements"
-              << " (" << location << ")" << std::endl;
 
-    is_left_history.push_back(is_left);
-
-    for (int i = statements.size() - 1; i >= 0; --i)
+    // NOTE: We cheat a bit here when we print the statements. Is left is always
+    // going to be true the first time, so we use it print parameters and add
+    // history, but then we set the rest to false not make them not print
+    // parameters
+    if (is_left)
     {
-        statements[i]->print(os, symbol_table, i != 0, is_left_history);
+
+        std::cout << indent(is_left_history) << "+ Statements"
+                  << " (" << location << ")" << std::endl;
+
+        is_left_history.push_back(is_left);
     }
 
-    is_left_history.pop_back();
+    ASSERT(statement != nullptr);
+    statement->print(os, symbol_table, false, is_left_history);
+
+    if (rest_statements)
+    {
+        rest_statements->print(os, symbol_table, false, is_left_history);
+    }
+
+    if (is_left)
+    {
+        is_left_history.pop_back();
+    }
 }
 
 void AST_ParameterList::print(std::ostream &os, SymbolTable *symbol_table,
