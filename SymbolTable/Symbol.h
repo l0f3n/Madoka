@@ -25,6 +25,7 @@ class Symbol
     Tag               tag{Symbol::Tag::Undefined};
     int               type{-1};
     int               level{-1};
+    int               offset{-1};
     int               hash_link{-1};
 
     friend std::ostream &operator<<(std::ostream &os, Symbol &symbol);
@@ -36,8 +37,6 @@ class VariableSymbol : public Symbol
 {
   public:
     VariableSymbol(Location const &location, const std::string &name);
-
-    int offset{-1};
 };
 
 class FunctionSymbol : public Symbol
@@ -55,7 +54,7 @@ class ParameterSymbol : public Symbol
   public:
     ParameterSymbol(Location const &location, const std::string &name);
 
-    int offset{-1};
+    int index{-1};
     int next_parameter{-1};
 };
 

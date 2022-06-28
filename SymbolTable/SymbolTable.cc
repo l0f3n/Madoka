@@ -15,6 +15,10 @@ SymbolTable::SymbolTable()
     type_integer = insert_type(no_location, "integer", 8);
     type_real    = insert_type(no_location, "real", 8);
 
+    // NOTE: Insert a default global function that always gets called in the
+    // beginning of the program. This is a bit slower but makes everything else
+    // a lot easier since you can always assume there is an enclosing scope.
+    // This is the "global scope".
     insert_function(no_location, "#global");
     open_scope();
 }
@@ -158,6 +162,8 @@ int SymbolTable::insert_parameter(Location const    &location,
 
     FunctionSymbol *function_symbol = get_function_symbol(enclosing_scope());
 
+    int parameter_count = 0;
+
     // NOTE: This is probably pretty slow. We go through every parameter so that
     // we can set this as the next parameter to the previous last parameter
     if (function_symbol->first_parameter == -1)
@@ -171,17 +177,20 @@ int SymbolTable::insert_parameter(Location const    &location,
 
         while (parameter->next_parameter != -1)
         {
+            parameter_count += 1;
             parameter = get_parameter_symbol(parameter->next_parameter);
         }
 
+        parameter_count += 1;
         parameter->next_parameter = symbol_index;
     }
 
-    // TODO: Update ARs size
-    // TODO: Set parameters offset
+    parameter_symbol->index = parameter_count;
 
-    // parameter_symbol->previous_parameter = function_symbol->last_parameter;
-    // function_symbol->last_parameter      = symbol_index;
+    TypeSymbol *type_symbol = get_type_symbol(type);
+
+    parameter_symbol->offset = function_symbol->activation_record_size;
+    function_symbol->activation_record_size += type_symbol->size;
 
     return symbol_index;
 }

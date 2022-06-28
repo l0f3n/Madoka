@@ -3,6 +3,7 @@
 #include "Error/Error.h"
 #include "SymbolTable/SymbolTable.h"
 #include <iostream>
+#include <string>
 
 Quad::Quad(Operation operation, long operand1, long operand2, long dest)
     : operation{operation}, operand1{operand1}, operand2{operand2}, dest{dest}
@@ -14,11 +15,37 @@ void Quads::generate_quads(AST_Node *root) { root->generate_quads(this); }
 
 void Quads::add_quad(Quad *quad) { quads.push_back(quad); }
 
+Quad *Quads::get_current_quad()
+{
+    if ((current_quad_index + 1) < quads.size())
+    {
+        return quads[++current_quad_index];
+    }
+    else
+    {
+        return nullptr;
+    }
+}
+
+void Quads::generate_argument_quads(AST_ExpressionList *arguments, int index)
+{
+    if (arguments == nullptr)
+    {
+        return;
+    }
+
+    int argument_location = arguments->expression->generate_quads(this);
+
+    add_quad(new Quad(Quad::Operation::ARGUMENT, argument_location, index, -1));
+
+    generate_argument_quads(arguments->rest_expressions, ++index);
+}
+
 std::ostream &operator<<(std::ostream &os, Quads const &q)
 {
-    for (Quad const *quad : q.quads)
+    for (int i = 0; i < q.quads.size(); i++)
     {
-        os << *quad << std::endl;
+        os << *q.quads[i] << std::endl;
     }
 
     return os;
@@ -37,7 +64,7 @@ std::ostream &operator<<(std::ostream &os, Quad::Operation const &op)
     case Quad::Operation::I_ADD: return os << "I_ADD";
     case Quad::Operation::I_STORE: return os << "I_STORE";
     case Quad::Operation::ASSIGN: return os << "ASSIGN";
-    case Quad::Operation::PARAM: return os << "PARAM";
+    case Quad::Operation::ARGUMENT: return os << "ARGUMENT";
     case Quad::Operation::LABEL: return os << "LABEL";
     case Quad::Operation::FUNCTION_CALL: return os << "FUNCTION_CALL";
     case Quad::Operation::RETURN: return os << "RETURN";
@@ -61,15 +88,25 @@ int AST_Identifier::generate_quads(Quads *quads) const { return symbol_index; }
 
 int AST_Integer::generate_quads(Quads *quads) const
 {
-    int type = quads->symbol_table->lookup_symbol("integer");
+    int type = quads->symbol_table->type_integer;
     int dest = quads->symbol_table->generate_temporary_variable(type);
-    quads->add_quad(new Quad{Quad::Operation::I_STORE, value, 0, dest});
+    quads->add_quad(new Quad{Quad::Operation::I_STORE, value, -1, dest});
     return dest;
 }
 
-int AST_Real::generate_quads(Quads *quads) const { return -1; }
+int AST_Real::generate_quads(Quads *quads) const
+{
+    report_internal_compiler_error(std::string("AST_Real::") + __func__ +
+                                   "(): no implemented");
+    return -1;
+}
 
-int AST_UnaryMinus::generate_quads(Quads *quads) const { return -1; }
+int AST_UnaryMinus::generate_quads(Quads *quads) const
+{
+    report_internal_compiler_error(std::string("AST_UnaryMinus::") + __func__ +
+                                   "(): no implemented");
+    return -1;
+}
 
 int AST_Plus::generate_quads(Quads *quads) const
 {
@@ -79,36 +116,83 @@ int AST_Plus::generate_quads(Quads *quads) const
     int operand1 = lhs->generate_quads(quads);
     int operand2 = rhs->generate_quads(quads);
 
-    // TODO: Figure of what type the resulting computation is going to have
-    // and generate a temporary of that type. Right now we alaways use
-    // integer
+    Symbol *operand1_symbol = quads->symbol_table->get_symbol(operand1);
+    ASSERT(operand1_symbol != nullptr);
 
-    int type = quads->symbol_table->lookup_symbol("integer");
-    int dest = quads->symbol_table->generate_temporary_variable(type);
-
-    quads->add_quad(new Quad{Quad::Operation::I_ADD, operand1, operand2, dest});
-
-    return dest;
+    // NOTE: They have already been type checked and are the same type, right
+    // here we just need to figure out which one
+    if (operand1_symbol->type == quads->symbol_table->type_integer)
+    {
+        int type = quads->symbol_table->type_integer;
+        int dest = quads->symbol_table->generate_temporary_variable(type);
+        quads->add_quad(
+            new Quad{Quad::Operation::I_ADD, operand1, operand2, dest});
+        return dest;
+    }
+    else
+    {
+        report_internal_compiler_error(
+            "Addition not implemented for type 'real'");
+        return -1;
+    }
 }
 
-int AST_Minus::generate_quads(Quads *quads) const { return -1; }
+int AST_Minus::generate_quads(Quads *quads) const
+{
+    report_internal_compiler_error(std::string("AST_Minus::") + __func__ +
+                                   "(): no implemented");
+    return -1;
+}
 
-int AST_Multiplication::generate_quads(Quads *quads) const { return -1; }
+int AST_Multiplication::generate_quads(Quads *quads) const
+{
+    report_internal_compiler_error(std::string("AST_Multiplication::") +
+                                   __func__ + "(): no implemented");
+    return -1;
+}
 
-int AST_Division::generate_quads(Quads *quads) const { return -1; }
+int AST_Division::generate_quads(Quads *quads) const
+{
+    report_internal_compiler_error(std::string("AST_Division::") + __func__ +
+                                   "(): no implemented");
+    return -1;
+}
 
-int AST_ParameterList::generate_quads(Quads *quads) const { return -1; }
+int AST_ParameterList::generate_quads(Quads *quads) const
+{
+    report_internal_compiler_error(std::string("AST_ParameterList::") +
+                                   __func__ + "(): no implemented");
+    return -1;
+}
 
-int AST_ExpressionList::generate_quads(Quads *quads) const { return -1; }
+int AST_ExpressionList::generate_quads(Quads *quads) const
+{
+    report_internal_compiler_error(std::string("AST_ExpressionList::") +
+                                   __func__ + "(): no implemented");
+    return -1;
+}
 
-int AST_StatementList::generate_quads(Quads *quads) const { return -1; }
+int AST_StatementList::generate_quads(Quads *quads) const
+{
+    ASSERT(statement != nullptr);
+    statement->generate_quads(quads);
+
+    if (rest_statements)
+    {
+        rest_statements->generate_quads(quads);
+    }
+
+    return -1;
+}
 
 int AST_If::generate_quads(Quads *quads) const { return -1; }
 
 int AST_VariableDefinition::generate_quads(Quads *quads) const
 {
+    // NOTE: At this stage, variable definition and assignment are the same
     quads->add_quad(new Quad(Quad::Operation::ASSIGN,
-                             rhs->generate_quads(quads), 0, lhs->symbol_index));
+                             rhs->generate_quads(quads), -1,
+                             lhs->symbol_index));
 
     return -1;
 }
@@ -116,17 +200,17 @@ int AST_VariableDefinition::generate_quads(Quads *quads) const
 int AST_VariableAssignment::generate_quads(Quads *quads) const
 {
     quads->add_quad(new Quad(Quad::Operation::ASSIGN,
-                             rhs->generate_quads(quads), 0, lhs->symbol_index));
+                             rhs->generate_quads(quads), -1,
+                             lhs->symbol_index));
 
     return -1;
 }
 
 int AST_FunctionDefinition::generate_quads(Quads *quads) const
 {
-    // NOTE: The top of the function, where calls to this function will jump
-    long label_number = quads->symbol_table->get_next_label();
-    quads->add_quad(
-        new Quad(Quad::Operation::LABEL, label_number, name->symbol_index, -1));
+    // NOTE: We automatically generate function entry and function exit code
+    // in the code generator when we start generating functions. Thats why we
+    // basically don't do anything here, except generating the actually body
 
     ASSERT(body != nullptr);
     body->generate_quads(quads);
@@ -136,43 +220,50 @@ int AST_FunctionDefinition::generate_quads(Quads *quads) const
 int AST_Return::generate_quads(Quads *quads) const
 {
     // TODO: Support multiple return values
-    /*
-    if (return_values != nullptr && return_values->expressions.size() > 1)
+
+    if (return_values != nullptr && return_values->rest_expressions != nullptr)
     {
         std::cout << "Erorr: Can't return multiple values from function yet"
                   << std::endl;
         std::exit(1);
     }
-    */
 
-    int return_value =
-        return_values != nullptr ? return_values->generate_quads(quads) : -1;
+    // TODO: This is temporary while we can't decide if we want one or
+    // multiple return values
+    int address;
+    if (return_values != nullptr)
+    {
+        ASSERT(return_values->expression != nullptr);
+        address = return_values->expression->generate_quads(quads);
+    }
+    else
+    {
+        address = -1;
+    }
+
+    // int return_value =
+    // return_values != nullptr ? return_values->generate_quads(quads) : -1;
 
     // TODO: Normally you would just put your return value in the RAX
     // register but since we want to support multiple return values we need
     // to put them somewhere else and handle it in some other way
-    quads->add_quad(new Quad(Quad::Operation::RETURN, return_value, -1, -1));
+    quads->add_quad(new Quad(Quad::Operation::RETURN, address, -1, -1));
 
-    return -1;
+    return address;
 }
 
 int AST_FunctionCall::generate_quads(Quads *quads) const
 {
+    // NOTE: Calculate all arguments and put them on the stack
+    quads->generate_argument_quads(arguments, 0);
+
     // TODO: Use actual type of the return value
     // TODO: Implement multiple return values
-    int type         = quads->symbol_table->lookup_symbol("integer");
-    int return_value = quads->symbol_table->generate_temporary_variable(type);
+    int type    = quads->symbol_table->lookup_symbol("integer");
+    int address = quads->symbol_table->generate_temporary_variable(type);
 
-    // NOTE: Calculate all arguments and put them on the stack
-
-    if (arguments)
-    {
-        arguments->generate_quads(quads);
-    }
-
-    // TODO: Third parameter to quad should be number of parameters
     quads->add_quad(new Quad(Quad::Operation::FUNCTION_CALL,
-                             ident->symbol_index, -1, return_value));
+                             ident->symbol_index, -1, address));
 
-    return return_value;
+    return address;
 }

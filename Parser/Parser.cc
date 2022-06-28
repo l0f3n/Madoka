@@ -1,5 +1,6 @@
 #include "Parser.h"
 #include "AST/AST.h"
+#include "CodeGenerator/CodeGenerator.h"
 #include "Error/Error.h"
 #include "Quads/Quads.h"
 #include "Tokenizer/Tokenizer.h"
@@ -9,10 +10,13 @@
 #include <string>
 
 Parser::Parser(Tokenizer &tokenizer, SymbolTable *symbol_table,
-               TypeChecker &type_checker, Quads &quads)
+               TypeChecker &type_checker, Quads &quads,
+               CodeGenerator &code_generator)
     : tokenizer{tokenizer}, symbol_table{symbol_table},
-      type_checker{type_checker}, quads{quads}
-{}
+      type_checker{type_checker}, quads{quads}, code_generator{code_generator}
+{
+    ASSERT(symbol_table != nullptr);
+}
 
 Token Parser::expect(Token::Kind kind)
 {
@@ -45,8 +49,11 @@ AST_BinaryOperation *Parser::respect_precedence(AST_BinaryOperation *binop)
     // subtrees. But we do this reorganization from the bottom up so every
     // sub-tree is also guaranteed to be correct.
 
+    ASSERT(binop != nullptr);
+
     AST_BinaryOperation *binop_below =
         dynamic_cast<AST_BinaryOperation *>(binop->rhs);
+
     if (binop_below != nullptr && binop->precedence > binop_below->precedence)
     {
         binop->rhs       = binop_below->lhs;
@@ -66,6 +73,59 @@ AST_Node *Parser::parse()
 
     expect(Token::Kind::End);
 
+    // TODO: I don't like that we have to call code generation functions
+    // directly from here, it doesn't seem very good to me
+
+    // NOTE: We have a function called '#global' that runs automatically
+    FunctionSymbol *function =
+        symbol_table->get_function_symbol(symbol_table->enclosing_scope());
+
+    // NOTE: This feels really weird. Manually generating an AST for a function
+    // called '#global' and making it call 'main'. Think about doing it some
+    // other way
+
+    Location no_location{-1, -1, -1, -1};
+
+    // TODO: Probably create constant to refer to #global
+    AST_Identifier *name =
+        new AST_Identifier(no_location, symbol_table->lookup_symbol("#global"));
+
+    AST_ParameterList *parameters = nullptr;
+
+    int symbol_index = symbol_table->lookup_symbol("main");
+    if (symbol_index == -1)
+    {
+        report_parse_error(no_location, "Function 'main' needs to be defined");
+    }
+
+    Symbol *symbol = symbol_table->get_symbol(symbol_index);
+    if (symbol->tag != Symbol::Tag::Function)
+    {
+        report_parse_error(symbol->location,
+                           "Cannot define variable with name 'main'");
+    }
+
+    AST_Identifier *main =
+        new AST_Identifier(no_location, symbol_table->lookup_symbol("main"));
+
+    AST_Return *return_value = new AST_Return(no_location, nullptr);
+
+    AST_StatementList *r_body =
+        new AST_StatementList(no_location, return_value, nullptr);
+
+    AST_FunctionCall *call = new AST_FunctionCall(no_location, main, nullptr);
+
+    AST_StatementList *body = new AST_StatementList(no_location, call, r_body);
+
+    AST_Node *default_function =
+        new AST_FunctionDefinition(no_location, name, nullptr, nullptr, body);
+
+    quads.generate_quads(default_function);
+    code_generator.generate_code(quads);
+
+    // NOTE: We are done, so this is not necessary. Just do it for closure.
+    symbol_table->close_scope();
+
     return expr;
 }
 
@@ -74,6 +134,7 @@ AST_Node *Parser::parse_start() { return parse_statement_list(); }
 AST_StatementList *Parser::parse_statement_list()
 {
     AST_Statement *statement = parse_statement();
+    ASSERT(statement != nullptr);
 
     // TODO: This is weird, but works for now
     AST_FunctionDefinition *function_definition =
@@ -87,29 +148,25 @@ AST_StatementList *Parser::parse_statement_list()
     {
         // TODO: Make this function call look cleaner, add another overload
         // probably
-        function_definition->print(std::cout, symbol_table, true, {});
-        std::cout << std::endl;
+        // function_definition->print(std::cout, symbol_table, true, {});
+        // std::cout << std::endl;
+
         type_checker.type_check(function_definition);
+
         quads.generate_quads(function_definition);
+
+        code_generator.generate_code(quads);
+
+        // NOTE: We opened the scope when we parsed the function below but we
+        // cant close it their since we need to lookup the symbols from that
+        // scope when typechecking, generating quads and generating code. So we
+        // close it here instead.
+        symbol_table->close_scope();
     }
 
     AST_StatementList *statement_list = parse_statement_list_tail();
     return new AST_StatementList(statement->location, statement,
                                  statement_list);
-
-    /*
-    if (statement_list != nullptr)
-    {
-        statement_list->add_statement(statement);
-        return statement_list;
-    }
-    else
-    {
-        // TODO: This gives the statementlist the position of the last statement
-        // in the list, but it should be the first
-        return new AST_StatementList(statement->location, statement);
-    }
-    */
 }
 
 AST_StatementList *Parser::parse_statement_list_tail()
@@ -270,6 +327,9 @@ AST_Statement *Parser::parse_statement()
 
         expect(Token::Kind::RightParentheses);
 
+        // TODO: We can't parse the return values the same way as we parse
+        // parameters, since the will get added to the parameters of the
+        // function. This is really broken right now.
         AST_ParameterList *return_values = parse_optional_return();
 
         expect(Token::Kind::LeftCurlyBrace);
@@ -279,8 +339,8 @@ AST_Statement *Parser::parse_statement()
 
         expect(Token::Kind::RightCurlyBrace);
 
-        symbol_table->close_scope();
-
+        // TODO: Instead of returning immediately, we should probably do
+        // typechecking, quad and code generation here here, and then return
         return new AST_FunctionDefinition(token_function.location, name,
                                           parameter_list, return_values, body);
     }
@@ -323,6 +383,9 @@ AST_Statement *Parser::parse_statement()
         // TODO: Return proper value
         return nullptr;
     }
+    // TODO: Add another case here that gives the possibility of adding scopes,
+    // ie only '{' and '}' instead of functions. This will only open/close
+    // scope instead of creating a function
     default:
     {
         report_parse_error_unexpected_token(tokenizer.peek(1));
@@ -373,7 +436,9 @@ AST_ExpressionList *Parser::parse_optional_argument_list()
 
 AST_ExpressionList *Parser::parse_argument_list()
 {
-    AST_Expression     *argument      = parse_argument();
+    AST_Expression *argument = parse_argument();
+    ASSERT(argument != nullptr);
+
     AST_ExpressionList *argument_list = parse_argument_list_tail();
 
     return new AST_ExpressionList(argument->location, argument, argument_list);
@@ -413,7 +478,9 @@ AST_ParameterList *Parser::parse_parameter_list()
     // TODO: We need to split these into parse_parameter_list() and
     // parse_return_value_list() to be able to handle them differently
 
-    AST_Identifier    *parameter  = parse_parameter();
+    AST_Identifier *parameter = parse_parameter();
+    ASSERT(parameter != nullptr);
+
     AST_ParameterList *param_list = parse_parameter_list_tail();
 
     return new AST_ParameterList(parameter->location, parameter, param_list);

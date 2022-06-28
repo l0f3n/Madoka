@@ -1,5 +1,6 @@
 #pragma once
 
+#include "SymbolTable/Symbol.h"
 #include "SymbolTable/SymbolTable.h"
 #include <AST/AST.h>
 #include <iostream>
@@ -16,9 +17,9 @@ struct Quad
 
         // Operations that work on both
         ASSIGN,
-        PARAM,
-        LABEL,
         FUNCTION_CALL,
+        LABEL,
+        ARGUMENT,
         RETURN,
     };
 
@@ -39,17 +40,19 @@ class Quads
     Quads(SymbolTable *symbol_table);
 
     void generate_quads(AST_Node *root);
-
     void add_quad(Quad *quad);
 
-    std::vector<Quad *>::iterator begin() { return std::begin(quads); };
-    std::vector<Quad *>::iterator end() { return std::end(quads); };
+    Quad *get_current_quad();
+
+    void generate_argument_quads(AST_ExpressionList *arguments, int index);
 
     friend std::ostream &operator<<(std::ostream &os, Quads const &q);
 
     SymbolTable *symbol_table;
 
   private:
+    int current_quad_index{-1};
+
     std::vector<Quad *> quads;
 };
 

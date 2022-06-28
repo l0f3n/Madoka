@@ -161,10 +161,12 @@ int AST_FunctionDefinition::type_check(TypeChecker *type_checker) const
 {
     // NOTE: We do not need to type check parameters
 
+    /*
     if (return_values)
     {
         return_values->type_check(type_checker);
     }
+    */
 
     ASSERT(body != nullptr);
     body->type_check(type_checker);

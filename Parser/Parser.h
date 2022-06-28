@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AST/AST.h"
+#include "CodeGenerator/CodeGenerator.h"
 #include "Quads/Quads.h"
 #include "SymbolTable/SymbolTable.h"
 #include "Tokenizer/Tokenizer.h"
@@ -10,7 +11,7 @@
 class Parser
 {
   public:
-    Parser(Tokenizer &, SymbolTable *, TypeChecker &, Quads &);
+    Parser(Tokenizer &, SymbolTable *, TypeChecker &, Quads &, CodeGenerator &);
 
     AST_Node *parse();
 
@@ -43,8 +44,9 @@ class Parser
 
     AST_BinaryOperation *respect_precedence(AST_BinaryOperation *binop);
 
-    Tokenizer    tokenizer;
-    SymbolTable *symbol_table;
-    TypeChecker  type_checker;
-    Quads        quads;
+    Tokenizer     tokenizer;
+    SymbolTable  *symbol_table;
+    TypeChecker   type_checker;
+    Quads         quads;
+    CodeGenerator code_generator;
 };
