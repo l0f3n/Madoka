@@ -61,13 +61,13 @@ std::ostream &operator<<(std::ostream &os, Quad::Operation const &op)
 {
     switch (op)
     {
-    case Quad::Operation::I_ADD: return os << "I_ADD";
-    case Quad::Operation::I_STORE: return os << "I_STORE";
-    case Quad::Operation::ASSIGN: return os << "ASSIGN";
-    case Quad::Operation::ARGUMENT: return os << "ARGUMENT";
-    case Quad::Operation::LABEL: return os << "LABEL";
-    case Quad::Operation::FUNCTION_CALL: return os << "FUNCTION_CALL";
-    case Quad::Operation::RETURN: return os << "RETURN";
+    case Quad::Operation::I_ADD: return os << "add";
+    case Quad::Operation::I_STORE: return os << "store";
+    case Quad::Operation::ASSIGN: return os << "assign";
+    case Quad::Operation::ARGUMENT: return os << "argument";
+    case Quad::Operation::LABEL: return os << "label";
+    case Quad::Operation::FUNCTION_CALL: return os << "function call";
+    case Quad::Operation::RETURN: return os << "return";
     default: return os << "Unknown operation";
     }
 }

@@ -248,6 +248,16 @@ Token Tokenizer::tokenize_next_token()
         consume_next_char();
         return create_token(Token::Kind::RightCurlyBrace, "}");
     }
+    case '[':
+    {
+        consume_next_char();
+        return create_token(Token::Kind::LeftSquareBracket, "[");
+    }
+    case ']':
+    {
+        consume_next_char();
+        return create_token(Token::Kind::RightSquareBracket, "]");
+    }
     case ':':
     {
         consume_next_char();
@@ -257,6 +267,11 @@ Token Tokenizer::tokenize_next_token()
     {
         consume_next_char();
         return create_token(Token::Kind::Comma, ",");
+    }
+    case '#':
+    {
+        consume_next_char();
+        return create_token(Token::Kind::Pound, "#");
     }
     }
 

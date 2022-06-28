@@ -3,6 +3,7 @@
 #include "CodeGenerator/CodeGenerator.h"
 #include "Error/Error.h"
 #include "Quads/Quads.h"
+#include "SymbolTable/Symbol.h"
 #include "Tokenizer/Tokenizer.h"
 #include <iostream>
 #include <sstream>
@@ -108,14 +109,9 @@ AST_Node *Parser::parse()
     AST_Identifier *main =
         new AST_Identifier(no_location, symbol_table->lookup_symbol("main"));
 
-    AST_Return *return_value = new AST_Return(no_location, nullptr);
-
-    AST_StatementList *r_body =
-        new AST_StatementList(no_location, return_value, nullptr);
-
     AST_FunctionCall *call = new AST_FunctionCall(no_location, main, nullptr);
 
-    AST_StatementList *body = new AST_StatementList(no_location, call, r_body);
+    AST_StatementList *body = new AST_StatementList(no_location, call, nullptr);
 
     AST_Node *default_function =
         new AST_FunctionDefinition(no_location, name, nullptr, nullptr, body);
@@ -304,6 +300,13 @@ AST_Statement *Parser::parse_statement()
         Token token_return = tokenizer.eat();
 
         AST_ExpressionList *return_values = parse_optional_argument_list();
+
+        // TODO: We need to handle the case where there are multiple branching
+        // paths in the body, and check if every path has a return. But we
+        // haven't implemented If statements yet.
+        FunctionSymbol *function =
+            symbol_table->get_function_symbol(symbol_table->enclosing_scope());
+        function->has_return = true;
 
         return new AST_Return(token_return.location, return_values);
     }

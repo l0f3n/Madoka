@@ -41,10 +41,13 @@ struct Token
         RightParentheses,
         LeftCurlyBrace,
         RightCurlyBrace,
+        LeftSquareBracket,
+        RightSquareBracket,
         Equals,
         Comma,
         Colon,
         Arrow,
+        Pound,
 
         // Special
         Unitialized,

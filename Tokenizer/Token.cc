@@ -75,9 +75,12 @@ std::ostream &operator<<(std::ostream &os, Token::Kind const &k)
     case Token::Kind::RightParentheses: return os << "RightParentheses";
     case Token::Kind::LeftCurlyBrace: return os << "LeftCurlyBrace";
     case Token::Kind::RightCurlyBrace: return os << "RightCurlyBrace";
+    case Token::Kind::LeftSquareBracket: return os << "LeftSquareBracket";
+    case Token::Kind::RightSquareBracket: return os << "RightSquareBraket";
     case Token::Kind::Colon: return os << "Colon";
     case Token::Kind::Comma: return os << "Comma";
     case Token::Kind::Arrow: return os << "Arrow";
+    case Token::Kind::Pound: return os << "Pound";
     case Token::Kind::End: return os << "End";
     default: return os << "Unexpected";
     }

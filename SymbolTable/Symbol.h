@@ -47,6 +47,8 @@ class FunctionSymbol : public Symbol
     int first_parameter{-1};
     int label{-1};
     int activation_record_size{0};
+
+    bool has_return{false};
 };
 
 class ParameterSymbol : public Symbol

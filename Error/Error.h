@@ -3,7 +3,7 @@
 #include "Tokenizer/Token.h"
 
 #define MA_DEBUG 1
-#define MA_ASM_COM 0
+#define MA_ASM_COM 1
 
 #if MA_DEBUG == 1
 #define ASSERT(condition)                                                      \

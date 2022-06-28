@@ -139,84 +139,45 @@ void CodeGenerator::generate_code(Quads &quads)
 
     Quad *quad = quads.get_current_quad();
 
-    // std::cout << quads << std::endl;
-
     while (quad != nullptr)
     {
+
+#if MA_ASM_COM == 1
+        out << "\t;; " << quad->operation << std::endl;
+#endif
+
         switch (quad->operation)
         {
             {
             case Quad::Operation::ASSIGN:
-#if MA_ASM_COM == 1
-                out << "; -- ASSIGN" << std::endl;
-#endif
-
                 // TODO: When we do a function call with multiple return values
                 // we can't simply do it like this since this only supports one
                 // value. A solution would be to make this more general and
                 // support multiple regular assignments as well in a single
                 // line. This would be fine, but maybe only support one for now.
 
-                // TODO: The current error results from the fact that function
-                // calls don't return an index to a value. It can't since it
-                // wants to treturn multiple. We need to handle that, see above.
                 load("r10", quad->operand1);
                 store(quad->dest, "r10");
-
-#if MA_ASM_COM == 1
-                out << "; ASSIGN" << std::endl;
-#endif
 
                 break;
             }
         case Quad::Operation::ARGUMENT:
         {
-#if MA_ASM_COM == 1
-            out << "; -- I_ARUGMENT" << std::endl;
-#endif
-            std::string reg = get_argument_register(quad->operand2);
-            load(reg, quad->operand1);
-            // operation("push r10");
-#if MA_ASM_COM == 1
-            out << "; -- I_ARGUMENT" << std::endl;
-#endif
+            load(get_argument_register(quad->operand2), quad->operand1);
 
             break;
         }
         case Quad::Operation::I_STORE:
         {
-
-#if MA_ASM_COM == 1
-            out << "; -- I_STORE" << std::endl;
-#endif
             std::string offset =
                 std::to_string(local_variable_offset(quad->dest));
-
-            operation("mov qword [rsp-" + offset + "], " +
+            operation("mov qword [rbp-" + offset + "], " +
                       std::to_string(quad->operand1));
-
-            // NOTE: Move integer literal operand1 into dest
-
-            // TODO: We need to use the dest symbol to calcualte where in the
-            // AR to put the integer literal
-
-            // out << "; Assignment code" << std::endl;
-
-            // operation("mov " + std::to_string(quad->dest) + ", " +
-            // std::to_string(quad->operand1));
-
-#if MA_ASM_COM == 1
-            out << "; I_STORE" << std::endl;
-#endif
 
             break;
         }
         case Quad::Operation::FUNCTION_CALL:
         {
-#if MA_ASM_COM == 1
-            out << "; -- " << quad->operation << std::endl;
-#endif
-
             FunctionSymbol *function =
                 symbol_table->get_function_symbol(quad->operand1);
 
@@ -228,43 +189,31 @@ void CodeGenerator::generate_code(Quads &quads)
             // this is what causes the current segmentation fault.
             store(quad->dest, "rax");
 
-#if MA_ASM_COM == 1
-            out << "; FUNCTION_CALL" << std::endl;
-#endif
-
             break;
         }
         case Quad::Operation::RETURN:
         {
-#if MA_ASM_COM == 1
-            out << "; -- I_RETURN" << std::endl;
-#endif
             if (quad->operand1 != -1)
             {
                 load("rax", quad->operand1);
             }
 
-            generate_function_epilogue(function);
-#if MA_ASM_COM == 1
-            out << "; I_RETURN" << std::endl;
-#endif
+            // NOTE: Same as epilogue
+            std::string AR_size =
+                std::to_string(function->activation_record_size);
+            operation("add rsp, " + AR_size);
+            operation("pop rbp");
+            operation("ret");
 
             break;
         }
         case Quad::Operation::I_ADD:
         {
-#if MA_ASM_COM == 1
-            out << "; -- I_ADD" << std::endl;
-#endif
-
             load("r8", quad->operand1);
             load("r9", quad->operand2);
             operation("add r8, r9");
             store(quad->dest, "r8");
 
-#if MA_ASM_COM == 1
-            out << "; I_ADD" << std::endl;
-#endif
             break;
         }
         default:
@@ -274,7 +223,9 @@ void CodeGenerator::generate_code(Quads &quads)
         }
         }
 
+#if MA_ASM_COM == 1
         out << std::endl;
+#endif
 
         quad = quads.get_current_quad();
     }
@@ -284,10 +235,6 @@ void CodeGenerator::generate_code(Quads &quads)
 
 void CodeGenerator::generate_function_prologue(FunctionSymbol *function) const
 {
-#if MA_ASM_COM == 1
-    out << "; -- PROLOGUE" << std::endl;
-#endif
-
     ASSERT(function != nullptr);
 
     label(function);
@@ -295,6 +242,10 @@ void CodeGenerator::generate_function_prologue(FunctionSymbol *function) const
     // ===================================
     // ===== Setup actication record =====
     // ===================================
+
+#if MA_ASM_COM == 1
+    out << "\t;; Prologue" << std::endl;
+#endif
 
     operation("push rbp");     // Push previous frames RBP
     operation("mov rbp, rsp"); // Set RBP to current frame
@@ -308,36 +259,37 @@ void CodeGenerator::generate_function_prologue(FunctionSymbol *function) const
     // location on the stack. Do nothing if function takes 0 parameters.
     store_parameter(function->first_parameter);
 
-    out << std::endl;
-
 #if MA_ASM_COM == 1
-    out << "; PROLOGUE" << std::endl;
+    out << std::endl;
 #endif
 }
 
 void CodeGenerator::generate_function_epilogue(FunctionSymbol *function) const
 {
-#if MA_ASM_COM == 1
-    out << "; -- EPILOGUE" << std::endl;
-#endif
-
     ASSERT(function != nullptr);
 
-    // TODO: We don't need to do this if the function contains a return
-    // statement, check for that and don't generate anything if that is the
-    // case. Also check that the function returns no values, otherwise this
-    // implementation is not okay.
+    if (function->has_return)
+    {
+        // NOTE: The function has an explicit return in its body, so no need to
+        // generate this implicit one
+        return;
+    }
 
+#if MA_ASM_COM == 1
+    out << "\t;; Epilogue" << std::endl;
+#endif
+
+    // TODO: Also check that the function returns no values, otherwise this
+    // implementation is not okay.
+    //
     // NOTE: Deallocate all the space we allocated in the prologue
     std::string AR_size = std::to_string(function->activation_record_size);
     operation("add rsp, " + AR_size);
     operation("pop rbp"); // Set RBP to previous frame, since we are returning
     operation("ret");
 
-    out << std::endl;
-
 #if MA_ASM_COM == 1
-    out << "; EPILOGUE" << std::endl;
+    out << std::endl;
 #endif
 }
 
@@ -360,30 +312,3 @@ void CodeGenerator::generate_entry_code() const
     operation("mov rdi, 0x00");
     operation("syscall");
 }
-
-/*
-void CodeGenerator::generate_used_intrinsics() const
-{
-    // TODO: This seems like a bad solution, do something else
-    for (std::string intrinsic : intrinsics)
-    {
-        if (intrinsic == "print")
-        {
-            FunctionSymbol *function = symbol_table->get_function_symbol(
-                symbol_table->lookup_symbol(intrinsic));
-
-            generate_function_prologue(function);
-
-            operation("mov rax, 1"); // Write system call
-            operation("mov rdi, 1"); // Write to standard out
-
-            load("rsi", function->first_parameter); // Write value
-
-            operation("mov rdx, 8"); // Write length bytes
-            operation("syscall");
-
-            generate_function_epilogue(function);
-        }
-    }
-}
-*/
