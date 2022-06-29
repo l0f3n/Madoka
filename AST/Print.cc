@@ -117,9 +117,9 @@ void AST_FunctionDefinition::print(std::ostream &os, SymbolTable *symbol_table,
         parameter_list->print(os, symbol_table, true, is_left_history);
     }
 
-    if (return_values)
+    if (return_type)
     {
-        return_values->print(os, symbol_table, true, is_left_history);
+        return_type->print(os, symbol_table, true, is_left_history);
     }
 
     body->print(os, symbol_table, false, is_left_history);
@@ -229,9 +229,9 @@ void AST_Return::print(std::ostream &os, SymbolTable *symbol_table,
 
     is_left_history.push_back(is_left);
 
-    if (return_values)
+    if (expression)
     {
-        return_values->print(os, symbol_table, false, is_left_history);
+        expression->print(os, symbol_table, false, is_left_history);
     }
 
     is_left_history.pop_back();

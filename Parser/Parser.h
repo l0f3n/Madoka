@@ -34,11 +34,12 @@ class Parser
     AST_ParameterList *parse_optional_parameter_list();
     AST_ParameterList *parse_parameter_list();
     AST_ParameterList *parse_parameter_list_tail();
-    AST_ParameterList *parse_optional_return();
+    AST_Identifier    *parse_optional_return();
     AST_Identifier    *parse_parameter();
 
     // Expressions
     AST_Expression *parse_expression();
+    AST_Expression *parse_optional_expression();
     AST_Expression *parse_term();
     AST_Expression *parse_minus_term();
 

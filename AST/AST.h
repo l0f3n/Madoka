@@ -71,7 +71,7 @@ class AST_If : public AST_Statement
 class AST_Return : public AST_Statement
 {
   public:
-    AST_Return(Location const, AST_ExpressionList *);
+    AST_Return(Location const, AST_Expression *);
     ~AST_Return();
 
     void print(std::ostream &os, SymbolTable *symbol_table, bool is_left,
@@ -80,7 +80,7 @@ class AST_Return : public AST_Statement
     int generate_quads(Quads *quads) const override;
     int type_check(TypeChecker *type_checker) const override;
 
-    AST_ExpressionList *return_values;
+    AST_Expression *expression;
 };
 
 class AST_VariableDefinition : public AST_Statement
@@ -152,7 +152,7 @@ class AST_FunctionDefinition : public AST_Statement
 {
   public:
     AST_FunctionDefinition(Location const, AST_Identifier *,
-                           AST_ParameterList *, AST_ParameterList *,
+                           AST_ParameterList *, AST_Identifier *,
                            AST_StatementList *);
     ~AST_FunctionDefinition();
 
@@ -164,7 +164,7 @@ class AST_FunctionDefinition : public AST_Statement
 
     AST_Identifier    *name;
     AST_ParameterList *parameter_list;
-    AST_ParameterList *return_values;
+    AST_Identifier    *return_type;
     AST_StatementList *body;
 };
 

@@ -12,7 +12,7 @@ SymbolTable::SymbolTable()
     std::fill(std::begin(hash_table), std::end(hash_table), -1);
 
     type_void    = insert_type(no_location, "void", 0);
-    type_integer = insert_type(no_location, "integer", 8);
+    type_integer = insert_type(no_location, "int", 8);
     type_real    = insert_type(no_location, "real", 8);
 
     // NOTE: Insert a default global function that always gets called in the
@@ -135,8 +135,6 @@ int SymbolTable::insert_function(Location const    &location,
     // explicit. The function doesn't know which one is its last parameter when
     // we add it, when we actually add the parameters later they will set it
     function_symbol->first_parameter = -1;
-
-    // TODO: Set type, somehow, as well
 
     return symbol_index;
 }
@@ -384,11 +382,10 @@ void SymbolTable::close_scope()
 
 int SymbolTable::enclosing_scope() const { return block_table[current_level]; }
 
-std::string const &SymbolTable::get_type_name(int type_index) const
+std::string SymbolTable::get_name(int symbol_index)
 {
-    ASSERT(type_index >= 0);
-    Symbol *symbol = symbol_table[type_index];
+    ASSERT(symbol_index >= 0);
+    Symbol *symbol = symbol_table[symbol_index];
     ASSERT(symbol != nullptr);
-    ASSERT(symbol->tag == Symbol::Tag::Type);
     return symbol->name;
 }

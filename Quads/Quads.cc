@@ -219,34 +219,16 @@ int AST_FunctionDefinition::generate_quads(Quads *quads) const
 }
 int AST_Return::generate_quads(Quads *quads) const
 {
-    // TODO: Support multiple return values
-
-    if (return_values != nullptr && return_values->rest_expressions != nullptr)
-    {
-        std::cout << "Erorr: Can't return multiple values from function yet"
-                  << std::endl;
-        std::exit(1);
-    }
-
-    // TODO: This is temporary while we can't decide if we want one or
-    // multiple return values
     int address;
-    if (return_values != nullptr)
+    if (expression != nullptr)
     {
-        ASSERT(return_values->expression != nullptr);
-        address = return_values->expression->generate_quads(quads);
+        address = expression->generate_quads(quads);
     }
     else
     {
         address = -1;
     }
 
-    // int return_value =
-    // return_values != nullptr ? return_values->generate_quads(quads) : -1;
-
-    // TODO: Normally you would just put your return value in the RAX
-    // register but since we want to support multiple return values we need
-    // to put them somewhere else and handle it in some other way
     quads->add_quad(new Quad(Quad::Operation::RETURN, address, -1, -1));
 
     return address;
@@ -259,7 +241,7 @@ int AST_FunctionCall::generate_quads(Quads *quads) const
 
     // TODO: Use actual type of the return value
     // TODO: Implement multiple return values
-    int type    = quads->symbol_table->lookup_symbol("integer");
+    int type    = quads->symbol_table->type_integer;
     int address = quads->symbol_table->generate_temporary_variable(type);
 
     quads->add_quad(new Quad(Quad::Operation::FUNCTION_CALL,

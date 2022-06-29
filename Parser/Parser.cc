@@ -299,17 +299,19 @@ AST_Statement *Parser::parse_statement()
     {
         Token token_return = tokenizer.eat();
 
-        AST_ExpressionList *return_values = parse_optional_argument_list();
+        AST_Expression *expression = parse_optional_expression();
 
         // TODO: We need to handle the case where there are multiple branching
         // paths in the body, and check if every path has a return. But we
         // haven't implemented If statements yet.
         FunctionSymbol *function =
             symbol_table->get_function_symbol(symbol_table->enclosing_scope());
+
         function->has_return = true;
 
-        return new AST_Return(token_return.location, return_values);
+        return new AST_Return(token_return.location, expression);
     }
+    // Function definition
     case Token::Kind::Function:
     {
         Token token_function = tokenizer.eat();
@@ -330,10 +332,17 @@ AST_Statement *Parser::parse_statement()
 
         expect(Token::Kind::RightParentheses);
 
-        // TODO: We can't parse the return values the same way as we parse
-        // parameters, since the will get added to the parameters of the
-        // function. This is really broken right now.
-        AST_ParameterList *return_values = parse_optional_return();
+        AST_Identifier *return_type = parse_optional_return();
+
+        // NOTE: The default return type is void, but if we find an explicit
+        // return here we need to set it to that instead
+        if (return_type)
+        {
+            FunctionSymbol *function =
+                symbol_table->get_function_symbol(symbol_index);
+
+            function->type = return_type->symbol_index;
+        }
 
         expect(Token::Kind::LeftCurlyBrace);
 
@@ -345,7 +354,7 @@ AST_Statement *Parser::parse_statement()
         // TODO: Instead of returning immediately, we should probably do
         // typechecking, quad and code generation here here, and then return
         return new AST_FunctionDefinition(token_function.location, name,
-                                          parameter_list, return_values, body);
+                                          parameter_list, return_type, body);
     }
     case Token::Kind::If:
     {
@@ -397,19 +406,32 @@ AST_Statement *Parser::parse_statement()
     }
 }
 
-AST_ParameterList *Parser::parse_optional_return()
+AST_Identifier *Parser::parse_optional_return()
 {
     if (tokenizer.peek(1).kind == Token::Kind::Arrow)
     {
-        tokenizer.eat();
+        tokenizer.eat(); // Eat '->'
 
-        expect(Token::Kind::LeftParentheses);
+        Token ident = expect(Token::Kind::Identifier);
 
-        AST_ParameterList *return_values = parse_parameter_list();
+        int type_index = symbol_table->lookup_symbol(ident.text);
 
-        expect(Token::Kind::RightParentheses);
+        if (type_index == -1)
+        {
+            report_parse_error_undefined_reference(ident);
+            return nullptr;
+        }
 
-        return return_values;
+        Symbol *type_symbol = symbol_table->get_symbol(type_index);
+
+        if (type_symbol->tag != Symbol::Tag::Type)
+        {
+            report_parse_error(ident.location,
+                               "Symbol '" + ident.text + "' is not a type");
+            return nullptr;
+        }
+
+        return new AST_Identifier(ident.location, type_index);
     }
     else
     {
@@ -603,6 +625,24 @@ AST_Expression *Parser::parse_expression()
     default:
     {
         return lhs;
+    }
+    }
+}
+
+AST_Expression *Parser::parse_optional_expression()
+{
+    switch (tokenizer.peek(1).kind)
+    {
+    case Token::Kind::Minus:
+    case Token::Kind::Integer:
+    case Token::Kind::Real:
+    case Token::Kind::LeftParentheses:
+    {
+        return parse_expression();
+    }
+    default:
+    {
+        return nullptr;
     }
     }
 }

@@ -14,12 +14,12 @@ StatementListTail ->   StatementList
 Statement ->   IDENTIFIER ':' IDENTIFIER '=' Expression
              | IDENTIFIER '=' Expression
              | IDENTIFIER '(' OptionalArgumentList ')'
-             | 'return' OptionalArgumentList
+             | 'return' OptionalExpression
              | 'function' IDENTIFIER '(' OptionalParameterList ')' OptionalReturn '{' StatementList '}'
              | 'if' '(' Expression ')' '{' StatementList '}'
              | 'while' '(' Expression ')' '{' StatementList '}'
 
-OptionalReturn ->  '->' '(' ParameterList ')'
+OptionalReturn ->  '->' IDENTIFIER
                   | e
 
 OptionalArgumentList ->   ArgumentList
@@ -48,10 +48,14 @@ Expression ->   MinusTerm '+' Expression
               | MinusTerm '/' Expression
               | MinusTerm
 
+OptionalExpression ->   Expression
+                      | e
+
 MinusTerm ->   '-' Term
              | Term
 
-Term ->   NUMBER
+Term ->   INTEGER
+        | REAL
         | IDENTIFIER
         | IDENTIFIER '(' OptionalArgumentList ')'
         | '(' Expression ')'

@@ -56,10 +56,9 @@ void TypeChecker::type_check_arguments(AST_FunctionCall const *function_call,
             symbol_table->get_symbol(function_call->ident->symbol_index)->name;
 
         std::string parameter_type_name =
-            symbol_table->get_type_name(parameter->type);
+            symbol_table->get_name(parameter->type);
 
-        std::string argument_type_name =
-            symbol_table->get_type_name(argument_type);
+        std::string argument_type_name = symbol_table->get_name(argument_type);
 
         report_type_error(argument->location,
                           "Parameter '" + parameter_name + "' to function '" +
@@ -88,8 +87,35 @@ int AST_If::type_check(TypeChecker *type_checker) const { return -1; }
 
 int AST_Return::type_check(TypeChecker *type_checker) const
 {
-    // TODO: Check that what we return matches what the function is suppose to
-    // return, both the NUMBER and TYPES of return values
+    FunctionSymbol *function = type_checker->symbol_table->get_function_symbol(
+        type_checker->symbol_table->enclosing_scope());
+
+    int actual_type;
+    if (expression != nullptr)
+    {
+        actual_type = expression->type_check(type_checker);
+    }
+    else
+    {
+        actual_type = type_checker->symbol_table->type_void;
+    }
+
+    if (actual_type != function->type)
+    {
+        std::string actual_type_name =
+            type_checker->symbol_table->get_name(actual_type);
+
+        std::string function_name = function->name;
+
+        std::string formal_type_name =
+            type_checker->symbol_table->get_name(function->type);
+
+        report_type_error(location, "Cannot return type '" + actual_type_name +
+                                        "' from function '" + function_name +
+                                        "' that is suppose to return type '" +
+                                        formal_type_name + "'");
+    }
+
     return -1;
 }
 
@@ -104,10 +130,9 @@ int AST_VariableDefinition::type_check(TypeChecker *type_checker) const
             type_checker->symbol_table->get_symbol(lhs->symbol_index);
 
         std::string m = "Variable '" + symbol->name + "' with type '" +
-                        type_checker->symbol_table->get_type_name(lhs_type) +
+                        type_checker->symbol_table->get_name(lhs_type) +
                         "' cannot be assigned value of type '" +
-                        type_checker->symbol_table->get_type_name(rhs_type) +
-                        "'";
+                        type_checker->symbol_table->get_name(rhs_type) + "'";
 
         report_type_error(location, m);
     }
@@ -126,10 +151,9 @@ int AST_VariableAssignment::type_check(TypeChecker *type_checker) const
             type_checker->symbol_table->get_symbol(lhs->symbol_index);
 
         std::string m = "Variable '" + symbol->name + "' with type '" +
-                        type_checker->symbol_table->get_type_name(lhs_type) +
+                        type_checker->symbol_table->get_name(lhs_type) +
                         "' cannot be assigned value of type '" +
-                        type_checker->symbol_table->get_type_name(rhs_type) +
-                        "'";
+                        type_checker->symbol_table->get_name(rhs_type) + "'";
 
         report_type_error(location, m);
     }
@@ -161,12 +185,21 @@ int AST_FunctionDefinition::type_check(TypeChecker *type_checker) const
 {
     // NOTE: We do not need to type check parameters
 
-    /*
-    if (return_values)
+    FunctionSymbol *function =
+        type_checker->symbol_table->get_function_symbol(name->symbol_index);
+
+    // NOTE: We can only implicitly return from a function if it returns nothing
+    if (!function->has_return &&
+        function->type != type_checker->symbol_table->type_void)
     {
-        return_values->type_check(type_checker);
+        std::string formal_type_name =
+            type_checker->symbol_table->get_name(function->type);
+
+        report_type_error(location, "Function '" + function->name +
+                                        "' is suppose to return type '" +
+                                        formal_type_name +
+                                        "', but doesn't return anything");
     }
-    */
 
     ASSERT(body != nullptr);
     body->type_check(type_checker);
@@ -228,10 +261,10 @@ int AST_Plus::type_check(TypeChecker *type_checker) const
     if (lhs_type != rhs_type)
     {
         std::string lhs_type_name =
-            type_checker->symbol_table->get_type_name(lhs_type);
+            type_checker->symbol_table->get_name(lhs_type);
 
         std::string rhs_type_name =
-            type_checker->symbol_table->get_type_name(rhs_type);
+            type_checker->symbol_table->get_name(rhs_type);
 
         report_type_error(location, "Cannot add values of type '" +
                                         lhs_type_name + "' and '" +
@@ -249,10 +282,10 @@ int AST_Minus::type_check(TypeChecker *type_checker) const
     if (lhs_type != rhs_type)
     {
         std::string lhs_type_name =
-            type_checker->symbol_table->get_type_name(lhs_type);
+            type_checker->symbol_table->get_name(lhs_type);
 
         std::string rhs_type_name =
-            type_checker->symbol_table->get_type_name(rhs_type);
+            type_checker->symbol_table->get_name(rhs_type);
 
         report_type_error(location, "Cannot subtract values of type '" +
                                         lhs_type_name + "' and '" +
@@ -270,10 +303,10 @@ int AST_Multiplication::type_check(TypeChecker *type_checker) const
     if (lhs_type != rhs_type)
     {
         std::string lhs_type_name =
-            type_checker->symbol_table->get_type_name(lhs_type);
+            type_checker->symbol_table->get_name(lhs_type);
 
         std::string rhs_type_name =
-            type_checker->symbol_table->get_type_name(rhs_type);
+            type_checker->symbol_table->get_name(rhs_type);
 
         report_type_error(location, "Cannot multiply values of type '" +
                                         lhs_type_name + "' and '" +
@@ -291,10 +324,10 @@ int AST_Division::type_check(TypeChecker *type_checker) const
     if (lhs_type != rhs_type)
     {
         std::string lhs_type_name =
-            type_checker->symbol_table->get_type_name(lhs_type);
+            type_checker->symbol_table->get_name(lhs_type);
 
         std::string rhs_type_name =
-            type_checker->symbol_table->get_type_name(rhs_type);
+            type_checker->symbol_table->get_name(rhs_type);
 
         report_type_error(location, "Cannot divide values of type '" +
                                         lhs_type_name + "' and '" +

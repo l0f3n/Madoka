@@ -38,7 +38,8 @@ class SymbolTable
 
     void print(std::ostream &os);
 
-    std::string const &get_type_name(int type_index) const;
+    // NOTE: Used for printing error messages
+    std::string get_name(int symbol_index);
 
     // NOTE: These get their proper values in the constructor
     int type_void{-1};

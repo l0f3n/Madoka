@@ -13,7 +13,15 @@ void report_internal_compiler_error(const std::string message)
 
 void report_parse_error(Location const &location, std::string const message)
 {
-    std::cout << "ParseError:" << location << ": " << message << std::endl;
+    std::cout << "ParseError:";
+
+    if (location.l1 != -1)
+    {
+        std::cout << location << ":";
+    }
+
+    std::cout << " " << message << std::endl;
+
     std::exit(1);
 }
 

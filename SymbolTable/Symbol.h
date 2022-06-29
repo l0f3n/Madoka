@@ -23,7 +23,7 @@ class Symbol
     Location const    location{Location{-1, -1, -1, -1}};
     std::string const name{""};
     Tag               tag{Symbol::Tag::Undefined};
-    int               type{-1};
+    int               type{0}; // We add void first so 0 means void
     int               level{-1};
     int               offset{-1};
     int               hash_link{-1};

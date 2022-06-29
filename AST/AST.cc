@@ -36,25 +36,24 @@ AST_If::~AST_If()
     delete body;
 }
 
-AST_Return::AST_Return(Location const      location,
-                       AST_ExpressionList *return_values)
-    : AST_Node(location), return_values{return_values}
+AST_Return::AST_Return(Location const location, AST_Expression *expression)
+    : AST_Node(location), expression{expression}
 {}
 
 AST_Return::~AST_Return()
 {
-    if (return_values)
+    if (expression)
     {
-        delete return_values;
+        delete expression;
     }
 }
 
 AST_FunctionDefinition::AST_FunctionDefinition(
     Location const location, AST_Identifier *name,
-    AST_ParameterList *parameter_list, AST_ParameterList *return_values,
+    AST_ParameterList *parameter_list, AST_Identifier *return_type,
     AST_StatementList *body)
     : AST_Node(location), name{name}, parameter_list{parameter_list},
-      return_values{return_values}, body{body}
+      return_type{return_type}, body{body}
 {}
 
 AST_FunctionDefinition::~AST_FunctionDefinition()
@@ -67,10 +66,10 @@ AST_FunctionDefinition::~AST_FunctionDefinition()
         delete parameter_list;
     }
 
-    if (return_values)
+    if (return_type)
     {
 
-        delete return_values;
+        delete return_type;
     }
 
     ASSERT(body != nullptr);
