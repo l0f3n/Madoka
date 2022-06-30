@@ -29,7 +29,6 @@ Token Parser::expect(Token::Kind kind)
     }
     else
     {
-        std::ostringstream oss{};
         report_parse_error_unexpected_token(next);
         return next;
     }
@@ -69,7 +68,6 @@ AST_BinaryOperation *Parser::respect_precedence(AST_BinaryOperation *binop)
 
 AST_Node *Parser::parse()
 {
-
     AST_Node *expr = parse_start();
 
     expect(Token::Kind::End);
@@ -91,8 +89,6 @@ AST_Node *Parser::parse()
     AST_Identifier *name =
         new AST_Identifier(no_location, symbol_table->lookup_symbol("#global"));
 
-    AST_ParameterList *parameters = nullptr;
-
     int symbol_index = symbol_table->lookup_symbol("main");
     if (symbol_index == -1)
     {
@@ -106,8 +102,7 @@ AST_Node *Parser::parse()
                            "Cannot define variable with name 'main'");
     }
 
-    AST_Identifier *main =
-        new AST_Identifier(no_location, symbol_table->lookup_symbol("main"));
+    AST_Identifier *main = new AST_Identifier(no_location, symbol_index);
 
     AST_FunctionCall *call = new AST_FunctionCall(no_location, main, nullptr);
 
@@ -170,9 +165,6 @@ AST_StatementList *Parser::parse_statement_list_tail()
     // TODO: Do this a better way. Statement assumes that it will always succeed
     // when parsing but here its fine if it fails. So we need to check here if
     // its going to succeed, which is kinda ugly.
-    //
-    // Is it unreasonable to do this iteratively instead? Is it possible? I feel
-    // like the code would look better that way.
 
     switch (tokenizer.peek(1).kind)
     {
@@ -633,9 +625,10 @@ AST_Expression *Parser::parse_optional_expression()
 {
     switch (tokenizer.peek(1).kind)
     {
-    case Token::Kind::Minus:
+    case Token::Kind::Identifier:
     case Token::Kind::Integer:
     case Token::Kind::Real:
+    case Token::Kind::Minus:
     case Token::Kind::LeftParentheses:
     {
         return parse_expression();

@@ -160,35 +160,29 @@ int SymbolTable::insert_parameter(Location const    &location,
 
     FunctionSymbol *function_symbol = get_function_symbol(enclosing_scope());
 
-    int parameter_count = 0;
-
-    // NOTE: This is probably pretty slow. We go through every parameter so that
-    // we can set this as the next parameter to the previous last parameter
     if (function_symbol->first_parameter == -1)
     {
+        // NOTE: This is the first parameter to the function
         function_symbol->first_parameter = symbol_index;
     }
     else
     {
+        // NOTE: Otherwise we have to iterate through every parameter and set
+        // this newly added parameter to the next parameter of the previous
+        // last parameter
         ParameterSymbol *parameter =
             get_parameter_symbol(function_symbol->first_parameter);
 
         while (parameter->next_parameter != -1)
         {
-            parameter_count += 1;
             parameter = get_parameter_symbol(parameter->next_parameter);
         }
 
-        parameter_count += 1;
         parameter->next_parameter = symbol_index;
     }
 
-    parameter_symbol->index = parameter_count;
-
-    TypeSymbol *type_symbol = get_type_symbol(type);
-
-    parameter_symbol->offset = function_symbol->activation_record_size;
-    function_symbol->activation_record_size += type_symbol->size;
+    parameter_symbol->index = function_symbol->parameter_count;
+    function_symbol->parameter_count += 1;
 
     return symbol_index;
 }

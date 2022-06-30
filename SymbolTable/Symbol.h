@@ -25,7 +25,6 @@ class Symbol
     Tag               tag{Symbol::Tag::Undefined};
     int               type{0}; // We add void first so 0 means void
     int               level{-1};
-    int               offset{-1};
     int               hash_link{-1};
 
     friend std::ostream &operator<<(std::ostream &os, Symbol &symbol);
@@ -37,6 +36,8 @@ class VariableSymbol : public Symbol
 {
   public:
     VariableSymbol(Location const &location, const std::string &name);
+
+    int offset{-1};
 };
 
 class FunctionSymbol : public Symbol
@@ -45,6 +46,8 @@ class FunctionSymbol : public Symbol
     FunctionSymbol(Location const &location, const std::string &name);
 
     int first_parameter{-1};
+    int parameter_count{0};
+
     int label{-1};
     int activation_record_size{0};
 

@@ -26,7 +26,7 @@ class CodeGenerator
     void label(std::string const) const;
     void label(FunctionSymbol const *function) const;
 
-    int local_variable_offset(int symbol_index) const;
+    std::string address(int symbol_index) const;
 
     // TODO: There should probably be some sort of register type instead of
     // just a string

@@ -28,7 +28,7 @@ void CodeGenerator::label(FunctionSymbol const *function) const
         << "L" << function->label << ":\t; " << function->name << std::endl;
 }
 
-int CodeGenerator::local_variable_offset(int symbol_index) const
+std::string CodeGenerator::address(int symbol_index) const
 {
     ASSERT(symbol_index != -1);
 
@@ -40,94 +40,51 @@ int CodeGenerator::local_variable_offset(int symbol_index) const
     // functions, so we can only access variables in the current scope
     ASSERT(symbol->level - 1 == function->level);
 
+    int offset;
+
     if (symbol->tag == Symbol::Tag::Variable)
     {
-        return symbol->offset + 8;
+        VariableSymbol *variable =
+            symbol_table->get_variable_symbol(symbol_index);
+
+        // NOTE: +8 since we store RBP at the bottom of the activation record
+        // which the offset doesn't account for
+        offset = -(variable->offset + 8);
     }
     else if (symbol->tag == Symbol::Tag::Parameter)
     {
-        return symbol->offset + 8;
+        ParameterSymbol *parameter =
+            symbol_table->get_parameter_symbol(symbol_index);
+
+        // NOTE: The parameters to a function gets pushed onto the stack before
+        // it is called, so we can access them at the top of the prevoius
+        // activation record. But we need to go down 2: one for previous rbp
+        // which is pushed onto the bottom of the stack and one for the return
+        // value then, then we are at the top of the stack.
+        offset = (function->parameter_count - (parameter->index + 1)) * 8 + 16;
     }
     else
     {
         report_internal_compiler_error(
             "local_variable_offset() called with non parameter/function");
-        return -1;
+        return "";
     }
+
+    return (offset > 0 ? "rbp+" : "rbp") + std::to_string(offset);
 }
 
 void CodeGenerator::load(std::string reg, int symbol_index) const
 {
     ASSERT(symbol_index != -1);
 
-    int offset = local_variable_offset(symbol_index);
-    operation("mov " + reg + ", [rbp-" + std::to_string(offset) + "]");
+    operation("mov " + reg + ", [" + address(symbol_index) + "]");
 }
 
 void CodeGenerator::store(int symbol_index, std::string reg) const
 {
     ASSERT(symbol_index != -1);
 
-    int offset = local_variable_offset(symbol_index);
-    operation("mov [rbp-" + std::to_string(offset) + "], " + reg);
-}
-
-std::string CodeGenerator::get_argument_register(int i) const
-{
-    switch (i)
-    {
-    case 0:
-    {
-        return "rdi";
-        break;
-    }
-    case 1:
-    {
-        return "rsi";
-        break;
-    }
-    case 2:
-    {
-        return "rdx";
-        break;
-    }
-    case 3:
-    {
-        return "rcx";
-        break;
-    }
-    case 4:
-    {
-        return "r8";
-        break;
-    }
-    case 5:
-    {
-        return "r9";
-        break;
-    }
-    default:
-    {
-        report_internal_compiler_error("Only 6 arguments are supported");
-        return "";
-        break;
-    }
-    }
-}
-
-void CodeGenerator::store_parameter(int symbol_index) const
-{
-    if (symbol_index == -1)
-    {
-        return;
-    }
-
-    ParameterSymbol *parameter =
-        symbol_table->get_parameter_symbol(symbol_index);
-
-    store(symbol_index, get_argument_register(parameter->index));
-
-    store_parameter(parameter->next_parameter);
+    operation("mov [" + address(symbol_index) + "], " + reg);
 }
 
 void CodeGenerator::generate_code(Quads &quads)
@@ -148,30 +105,25 @@ void CodeGenerator::generate_code(Quads &quads)
 
         switch (quad->operation)
         {
-            {
-            case Quad::Operation::ASSIGN:
-                // TODO: When we do a function call with multiple return values
-                // we can't simply do it like this since this only supports one
-                // value. A solution would be to make this more general and
-                // support multiple regular assignments as well in a single
-                // line. This would be fine, but maybe only support one for now.
+        case Quad::Operation::ASSIGN:
+        {
+            load("r10", quad->operand1);
+            store(quad->dest, "r10");
 
-                load("r10", quad->operand1);
-                store(quad->dest, "r10");
-
-                break;
-            }
+            break;
+        }
         case Quad::Operation::ARGUMENT:
         {
-            load(get_argument_register(quad->operand2), quad->operand1);
+            load("r10", quad->operand1);
+            // TODO: Do something so that the function that gets called can
+            // access them :)
+            operation("push r10");
 
             break;
         }
         case Quad::Operation::I_STORE:
         {
-            std::string offset =
-                std::to_string(local_variable_offset(quad->dest));
-            operation("mov qword [rbp-" + offset + "], " +
+            operation("mov qword [" + address(quad->dest) + "], " +
                       std::to_string(quad->operand1));
 
             break;
@@ -183,11 +135,21 @@ void CodeGenerator::generate_code(Quads &quads)
 
             operation("call L" + std::to_string(function->label));
 
-            // TODO: Only transfer return value from rax to stack if the
-            // function we are calling is actually returning a value. It should
-            // probably be stored in the function symbol in some way. I believe
-            // this is what causes the current segmentation fault.
-            store(quad->dest, "rax");
+            if (function->parameter_count > 0)
+            {
+                // NOTE: Before we call this function we have pushed all the
+                // arguments on top of the stack, but after we return we don't
+                // need them anymore and can safely decrease the stack pointer
+                operation("add rsp, " +
+                          std::to_string(function->parameter_count * 8));
+            }
+
+            // NOTE: Only store return value on stack if the function actually
+            // returns a value.
+            if (function->type != symbol_table->type_void)
+            {
+                store(quad->dest, "rax");
+            }
 
             break;
         }
@@ -198,12 +160,7 @@ void CodeGenerator::generate_code(Quads &quads)
                 load("rax", quad->operand1);
             }
 
-            // NOTE: Same as epilogue
-            std::string AR_size =
-                std::to_string(function->activation_record_size);
-            operation("add rsp, " + AR_size);
-            operation("pop rbp");
-            operation("ret");
+            generate_function_epilogue(function);
 
             break;
         }
@@ -230,7 +187,12 @@ void CodeGenerator::generate_code(Quads &quads)
         quad = quads.get_current_quad();
     }
 
-    generate_function_epilogue(function);
+    // NOTE: We need to generate an implicit return if the function body does
+    // not contain an explicit return statement
+    if (!function->has_return)
+    {
+        generate_function_epilogue(function);
+    }
 }
 
 void CodeGenerator::generate_function_prologue(FunctionSymbol *function) const
@@ -255,10 +217,6 @@ void CodeGenerator::generate_function_prologue(FunctionSymbol *function) const
     std::string ar_size = std::to_string(function->activation_record_size);
     operation("sub rsp, " + ar_size); // Allocate space for variables
 
-    // NOTE: Puts all received arguments from the registers to their proper
-    // location on the stack. Do nothing if function takes 0 parameters.
-    store_parameter(function->first_parameter);
-
 #if MA_ASM_COM == 1
     out << std::endl;
 #endif
@@ -268,20 +226,13 @@ void CodeGenerator::generate_function_epilogue(FunctionSymbol *function) const
 {
     ASSERT(function != nullptr);
 
-    if (function->has_return)
-    {
-        // NOTE: The function has an explicit return in its body, so no need to
-        // generate this implicit one
-        return;
-    }
-
 #if MA_ASM_COM == 1
     out << "\t;; Epilogue" << std::endl;
 #endif
 
     // TODO: Also check that the function returns no values, otherwise this
     // implementation is not okay.
-    //
+
     // NOTE: Deallocate all the space we allocated in the prologue
     std::string AR_size = std::to_string(function->activation_record_size);
     operation("add rsp, " + AR_size);

@@ -26,16 +26,15 @@ b: [int] = [1, 2, 3] ; List of ints
 ## Functions
 
 ```
-; A function taking an int and a real as arguments and returing an int and a
-; real
+; A function taking an int and a real as arguments and returing an int
 function main(a: int, b: real) -> int
 {
-    return a*b ; Return multiple values
+    return a*b 
 }
 
 result := main(1, 2) ; Function call
 
-; A function with no arguments or a return value
+; A function with no arguments and no return value
 function main()
 {
 
