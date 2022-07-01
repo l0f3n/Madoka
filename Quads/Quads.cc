@@ -1,6 +1,7 @@
 #include "Quads.h"
 #include "AST/AST.h"
 #include "Error/Error.h"
+#include "SymbolTable/Symbol.h"
 #include "SymbolTable/SymbolTable.h"
 #include <iostream>
 #include <string>
@@ -239,10 +240,15 @@ int AST_FunctionCall::generate_quads(Quads *quads) const
     // NOTE: Calculate all arguments and put them on the stack
     quads->generate_argument_quads(arguments, 0);
 
-    // TODO: Use actual type of the return value
-    // TODO: Implement multiple return values
-    int type    = quads->symbol_table->type_integer;
-    int address = quads->symbol_table->generate_temporary_variable(type);
+    FunctionSymbol *function =
+        quads->symbol_table->get_function_symbol(ident->symbol_index);
+
+    int address = -1;
+    if (function->type != quads->symbol_table->type_void)
+    {
+        address =
+            quads->symbol_table->generate_temporary_variable(function->type);
+    }
 
     quads->add_quad(new Quad(Quad::Operation::FUNCTION_CALL,
                              ident->symbol_index, -1, address));

@@ -3,13 +3,39 @@
 #include "Error/Error.h"
 #include "SymbolTable/Symbol.h"
 #include "SymbolTable/SymbolTable.h"
+#include <fstream>
 #include <iostream>
 #include <string>
 
 CodeGenerator::CodeGenerator(std::ostream &out, SymbolTable *symbol_table)
     : out{out}, symbol_table{symbol_table}
 {
+    std::ifstream is{"print.asm"};
+    out << is.rdbuf() << std::endl;
+
     generate_entry_code();
+}
+
+void CodeGenerator::generate_predefined_functions() const
+{
+    // NOTE: Generate a function that can be called that in turn calls the
+    // function __print defined in "print.asm"
+    FunctionSymbol *print =
+        symbol_table->get_function_symbol(symbol_table->lookup_symbol("print"));
+
+    generate_function_prologue(print);
+
+    std::string a1 = address(symbol_table->lookup_symbol("message"));
+    operation("mov rax, [" + a1 + "]");
+
+    // TODO: When we call print, we want it to automatically call the correct
+    // function for printing an integer, a real or a string. In other words,
+    // some sort of function overloading.
+    operation("call __print_integer");
+
+    out << std::endl;
+
+    generate_function_epilogue(print);
 }
 
 void CodeGenerator::operation(std::string const instruction) const
@@ -115,8 +141,6 @@ void CodeGenerator::generate_code(Quads &quads)
         case Quad::Operation::ARGUMENT:
         {
             load("r10", quad->operand1);
-            // TODO: Do something so that the function that gets called can
-            // access them :)
             operation("push r10");
 
             break;
@@ -148,6 +172,8 @@ void CodeGenerator::generate_code(Quads &quads)
             // returns a value.
             if (function->type != symbol_table->type_void)
             {
+                ASSERT(quad->dest != -1);
+
                 store(quad->dest, "rax");
             }
 
@@ -175,8 +201,8 @@ void CodeGenerator::generate_code(Quads &quads)
         }
         default:
         {
-            std::cout << "Unhandled quad type " << *quad << std::endl;
-            std::exit(1);
+            report_internal_compiler_error(
+                "generate_code(): Unhandled quad type");
         }
         }
 
@@ -214,8 +240,11 @@ void CodeGenerator::generate_function_prologue(FunctionSymbol *function) const
 
     // NOTE: Allocate space on the activation record for all variables and
     // temporary variables used in the function
-    std::string ar_size = std::to_string(function->activation_record_size);
-    operation("sub rsp, " + ar_size); // Allocate space for variables
+    if (function->activation_record_size > 0)
+    {
+        std::string AR_size = std::to_string(function->activation_record_size);
+        operation("sub rsp, " + AR_size);
+    }
 
 #if MA_ASM_COM == 1
     out << std::endl;
@@ -234,8 +263,12 @@ void CodeGenerator::generate_function_epilogue(FunctionSymbol *function) const
     // implementation is not okay.
 
     // NOTE: Deallocate all the space we allocated in the prologue
-    std::string AR_size = std::to_string(function->activation_record_size);
-    operation("add rsp, " + AR_size);
+    if (function->activation_record_size > 0)
+    {
+        std::string AR_size = std::to_string(function->activation_record_size);
+        operation("add rsp, " + AR_size);
+    }
+
     operation("pop rbp"); // Set RBP to previous frame, since we are returning
     operation("ret");
 

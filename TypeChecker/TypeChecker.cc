@@ -227,14 +227,7 @@ int AST_FunctionCall::type_check(TypeChecker *type_checker) const
     type_checker->type_check_arguments(this, function->first_parameter,
                                        arguments);
 
-    // TODO: Since we want functions to be able to return multiple things,
-    // we need to handle that in some way. We simply cant say that the
-    // function has type 'real' for that reason, its needs something like
-    // 'real, real', but how do we implement that, but how do we implement
-    // that?
-
-    // TODO: For now, lets just return integer for simplicity
-    return type_checker->symbol_table->type_integer;
+    return function->type;
 }
 
 int AST_Integer::type_check(TypeChecker *type_checker) const

@@ -18,6 +18,8 @@ class CodeGenerator
 
     void generate_entry_code() const;
 
+    void generate_predefined_functions() const;
+
     std::string get_argument_register(int) const;
     void        store_parameter(int) const;
 

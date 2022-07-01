@@ -239,15 +239,17 @@ int SymbolTable::insert_symbol(Location const    &location,
 
     if (++current_symbol_index >= MAX_SYMBOLS)
     {
-        std::cout << "Erorr: Maximum amount of symbols exceeded" << std::endl;
+        report_internal_compiler_error("Maximum amount of symbols exceeded");
     }
 
     symbol_table[current_symbol_index] = symbol;
-    hash_table[hash(name)]             = current_symbol_index;
 
-    if (symbol_index != -1)
+    int previous_index     = hash_table[hash(name)];
+    hash_table[hash(name)] = current_symbol_index;
+
+    if (previous_index != -1)
     {
-        symbol->hash_link = symbol_index;
+        symbol->hash_link = previous_index;
     }
 
     return current_symbol_index;
@@ -358,7 +360,7 @@ void SymbolTable::open_scope()
 {
     if (++current_level >= MAX_LEVELS)
     {
-        std::cout << "Error: Maximum amount of levels exceeded" << std::endl;
+        report_internal_compiler_error("Maximum amount of levels exceeded");
     }
 
     block_table[current_level] = current_symbol_index;

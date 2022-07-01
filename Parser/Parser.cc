@@ -68,12 +68,29 @@ AST_BinaryOperation *Parser::respect_precedence(AST_BinaryOperation *binop)
 
 AST_Node *Parser::parse()
 {
+    // NOTE: Before we begin parsing the user program, we add all predefined
+    // functions to the symbol table to make sure the user code can reference
+    // them. We also generate code for these functions of course. This solution
+    // seems really weird to me since the parser and the code generator will be
+    // coupled in a strange, and we don't utilise any typechecking or anything.
+
+    Location no_location{-1, -1, -1, -1};
+
+    // TODO: Later, we probably want to add a general syscall function, but this
+    // is okay for now
+    symbol_table->insert_function(no_location, "print");
+    symbol_table->open_scope();
+
+    symbol_table->insert_parameter(no_location, "message",
+                                   symbol_table->type_integer);
+
+    code_generator.generate_predefined_functions();
+
+    symbol_table->close_scope();
+
     AST_Node *expr = parse_statement_list();
 
     expect(Token::Kind::End);
-
-    // TODO: I don't like that we have to call code generation functions
-    // directly from here, it doesn't seem very good to me
 
     // NOTE: We have a function called '#global' that runs automatically
     FunctionSymbol *function =
@@ -82,8 +99,6 @@ AST_Node *Parser::parse()
     // NOTE: This feels really weird. Manually generating an AST for a function
     // called '#global' and making it call 'main'. Think about doing it some
     // other way
-
-    Location no_location{-1, -1, -1, -1};
 
     // TODO: Probably create constant to refer to #global
     AST_Identifier *name =
@@ -125,29 +140,6 @@ AST_StatementList *Parser::parse_statement_list()
     AST_Statement *statement = parse_statement();
     ASSERT(statement != nullptr);
 
-    // TODO: This is weird, but works for now
-    AST_FunctionDefinition *function_definition =
-        dynamic_cast<AST_FunctionDefinition *>(statement);
-
-    // NOTE: After we have parsed a function definition, we typecheck it. This
-    // also include typechecking its entire body. So everything that is not
-    // global will be included by doing this every time we have parsed a
-    // function
-    if (function_definition != nullptr)
-    {
-        type_checker.type_check(function_definition);
-
-        quads.generate_quads(function_definition);
-
-        code_generator.generate_code(quads);
-
-        // NOTE: We opened the scope when we parsed the function below but we
-        // cant close it their since we need to lookup the symbols from that
-        // scope when typechecking, generating quads and generating code. So
-        // we close it here instead.
-        symbol_table->close_scope();
-    }
-
     AST_StatementList *statement_list;
     switch (tokenizer.peek(1).kind)
     {
@@ -159,13 +151,16 @@ AST_StatementList *Parser::parse_statement_list()
     case Token::Kind::For:
     {
         statement_list = parse_statement_list();
+        break;
     }
     default:
     {
         statement_list = nullptr;
+        break;
     }
     }
 
+    // TODO: For some reason we only get the first statement
     return new AST_StatementList(statement->location, statement,
                                  statement_list);
 }
@@ -177,6 +172,7 @@ AST_Statement *Parser::parse_statement()
     case Token::Kind::Identifier:
     {
         Token name_token = tokenizer.eat();
+
         switch (tokenizer.peek(1).kind)
         {
         // Definition
@@ -329,10 +325,20 @@ AST_Statement *Parser::parse_statement()
 
         expect(Token::Kind::RightCurlyBrace);
 
-        // TODO: Instead of returning immediately, we should probably do
-        // typechecking, quad and code generation here here, and then return
-        return new AST_FunctionDefinition(token_function.location, name,
-                                          parameter_list, return_type, body);
+        AST_FunctionDefinition *function_definition =
+            new AST_FunctionDefinition(token_function.location, name,
+                                       parameter_list, return_type, body);
+
+        // NOTE: After we parse a function definition, we do all the interesting
+        // stuff!
+        // function_definition->print(std::cout, symbol_table, false, {});
+        type_checker.type_check(function_definition);
+        quads.generate_quads(function_definition);
+        code_generator.generate_code(quads);
+
+        symbol_table->close_scope();
+
+        return function_definition;
     }
     case Token::Kind::If:
     {
