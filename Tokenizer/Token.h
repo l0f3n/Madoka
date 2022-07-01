@@ -34,7 +34,7 @@ struct Token
         Function,
         If,
         Return,
-        While,
+        For,
 
         // Characters
         LeftParentheses,

@@ -70,7 +70,7 @@ std::ostream &operator<<(std::ostream &os, Token::Kind const &k)
     case Token::Kind::Function: return os << "Function";
     case Token::Kind::Return: return os << "Return";
     case Token::Kind::If: return os << "If";
-    case Token::Kind::While: return os << "While";
+    case Token::Kind::For: return os << "For";
     case Token::Kind::LeftParentheses: return os << "LeftParentheses";
     case Token::Kind::RightParentheses: return os << "RightParentheses";
     case Token::Kind::LeftCurlyBrace: return os << "LeftCurlyBrace";

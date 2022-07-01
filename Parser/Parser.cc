@@ -68,7 +68,7 @@ AST_BinaryOperation *Parser::respect_precedence(AST_BinaryOperation *binop)
 
 AST_Node *Parser::parse()
 {
-    AST_Node *expr = parse_start();
+    AST_Node *expr = parse_statement_list();
 
     expect(Token::Kind::End);
 
@@ -120,8 +120,6 @@ AST_Node *Parser::parse()
     return expr;
 }
 
-AST_Node *Parser::parse_start() { return parse_statement_list(); }
-
 AST_StatementList *Parser::parse_statement_list()
 {
     AST_Statement *statement = parse_statement();
@@ -137,11 +135,6 @@ AST_StatementList *Parser::parse_statement_list()
     // function
     if (function_definition != nullptr)
     {
-        // TODO: Make this function call look cleaner, add another overload
-        // probably
-        // function_definition->print(std::cout, symbol_table, true, {});
-        // std::cout << std::endl;
-
         type_checker.type_check(function_definition);
 
         quads.generate_quads(function_definition);
@@ -150,22 +143,12 @@ AST_StatementList *Parser::parse_statement_list()
 
         // NOTE: We opened the scope when we parsed the function below but we
         // cant close it their since we need to lookup the symbols from that
-        // scope when typechecking, generating quads and generating code. So we
-        // close it here instead.
+        // scope when typechecking, generating quads and generating code. So
+        // we close it here instead.
         symbol_table->close_scope();
     }
 
-    AST_StatementList *statement_list = parse_statement_list_tail();
-    return new AST_StatementList(statement->location, statement,
-                                 statement_list);
-}
-
-AST_StatementList *Parser::parse_statement_list_tail()
-{
-    // TODO: Do this a better way. Statement assumes that it will always succeed
-    // when parsing but here its fine if it fails. So we need to check here if
-    // its going to succeed, which is kinda ugly.
-
+    AST_StatementList *statement_list;
     switch (tokenizer.peek(1).kind)
     {
     case Token::Kind::Identifier:
@@ -173,15 +156,18 @@ AST_StatementList *Parser::parse_statement_list_tail()
     case Token::Kind::Function:
     case Token::Kind::LeftCurlyBrace:
     case Token::Kind::If:
-    case Token::Kind::While:
+    case Token::Kind::For:
     {
-        return parse_statement_list();
+        statement_list = parse_statement_list();
     }
     default:
     {
-        return nullptr;
+        statement_list = nullptr;
     }
     }
+
+    return new AST_StatementList(statement->location, statement,
+                                 statement_list);
 }
 
 AST_Statement *Parser::parse_statement()
@@ -366,10 +352,11 @@ AST_Statement *Parser::parse_statement()
 
         return new AST_If(token_if.location, condition, body);
     }
-    case Token::Kind::While:
+    case Token::Kind::For:
     {
-        report_parse_error(tokenizer.peek(1).location, "While not implemented");
+        report_parse_error(tokenizer.peek(1).location, "For not implemented");
 
+        /*
         tokenizer.eat();
 
         expect(Token::Kind::LeftParentheses);
@@ -384,6 +371,7 @@ AST_Statement *Parser::parse_statement()
 
         expect(Token::Kind::RightCurlyBrace);
 
+        */
         // TODO: Return proper value
         return nullptr;
     }
@@ -453,29 +441,23 @@ AST_ExpressionList *Parser::parse_optional_argument_list()
 
 AST_ExpressionList *Parser::parse_argument_list()
 {
-    AST_Expression *argument = parse_argument();
+    AST_Expression *argument = parse_expression();
     ASSERT(argument != nullptr);
 
-    AST_ExpressionList *argument_list = parse_argument_list_tail();
-
-    return new AST_ExpressionList(argument->location, argument, argument_list);
-}
-
-AST_ExpressionList *Parser::parse_argument_list_tail()
-{
+    AST_ExpressionList *argument_list;
     if (tokenizer.peek(1).kind == Token::Kind::Comma)
     {
         tokenizer.eat();
 
-        return parse_argument_list();
+        argument_list = parse_argument_list();
     }
     else
     {
-        return nullptr;
+        argument_list = nullptr;
     }
-}
 
-AST_Expression *Parser::parse_argument() { return parse_expression(); }
+    return new AST_ExpressionList(argument->location, argument, argument_list);
+}
 
 AST_ParameterList *Parser::parse_optional_parameter_list()
 {
@@ -492,45 +474,23 @@ AST_ParameterList *Parser::parse_optional_parameter_list()
 
 AST_ParameterList *Parser::parse_parameter_list()
 {
-    // TODO: We need to split these into parse_parameter_list() and
-    // parse_return_value_list() to be able to handle them differently
-
     AST_Identifier *parameter = parse_parameter();
     ASSERT(parameter != nullptr);
 
-    AST_ParameterList *param_list = parse_parameter_list_tail();
+    AST_ParameterList *param_list;
 
-    return new AST_ParameterList(parameter->location, parameter, param_list);
-
-    // NOTE: When we have reached the end of the parameters,
-    // parse_parameter_list_tail() returns nullptr. Then we create the
-    // parameterlist with the last parameter and send it back up and populate it
-    // with the already parsed parameters.
-    /*
-    if (param_list != nullptr)
-    {
-        param_list->add_parameter(parameter);
-        return param_list;
-    }
-    else
-    {
-        // TODO: Same as the other two
-        return new AST_ParameterList(parameter->location, parameter, nullptr);
-    }
-    */
-}
-
-AST_ParameterList *Parser::parse_parameter_list_tail()
-{
     if (tokenizer.peek(1).kind == Token::Kind::Comma)
     {
         tokenizer.eat();
-        return parse_parameter_list();
+
+        param_list = parse_parameter_list();
     }
     else
     {
-        return nullptr;
+        param_list = nullptr;
     }
+
+    return new AST_ParameterList(parameter->location, parameter, param_list);
 }
 
 AST_Identifier *Parser::parse_parameter()

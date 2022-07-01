@@ -21,19 +21,15 @@ class Parser
     AST_Node *parse_start();
 
     AST_StatementList *parse_statement_list();
-    AST_StatementList *parse_statement_list_tail();
     AST_Statement     *parse_statement();
 
     // Function call
     AST_ExpressionList *parse_optional_argument_list();
     AST_ExpressionList *parse_argument_list();
-    AST_ExpressionList *parse_argument_list_tail();
-    AST_Expression     *parse_argument();
 
     // Function defintion
     AST_ParameterList *parse_optional_parameter_list();
     AST_ParameterList *parse_parameter_list();
-    AST_ParameterList *parse_parameter_list_tail();
     AST_Identifier    *parse_optional_return();
     AST_Identifier    *parse_parameter();
 

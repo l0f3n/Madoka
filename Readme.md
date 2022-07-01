@@ -4,12 +4,8 @@
 ## Grammar
 
 ```
-Start -> StatementList
-
-StatementList -> Statement StatementListTail
-
-StatementListTail ->   StatementList
-                     | e
+StatementList ->   Statement StatementList
+                 | Statement 
  
 Statement ->   IDENTIFIER ':' IDENTIFIER '=' Expression
              | IDENTIFIER '=' Expression
@@ -17,7 +13,6 @@ Statement ->   IDENTIFIER ':' IDENTIFIER '=' Expression
              | 'return' OptionalExpression
              | 'function' IDENTIFIER '(' OptionalParameterList ')' OptionalReturn '{' StatementList '}'
              | 'if' '(' Expression ')' '{' StatementList '}'
-             | 'while' '(' Expression ')' '{' StatementList '}'
 
 OptionalReturn ->  '->' IDENTIFIER
                   | e
@@ -25,20 +20,14 @@ OptionalReturn ->  '->' IDENTIFIER
 OptionalArgumentList ->   ArgumentList
                         | e
 
-ArgumentList -> Argument ArgumentListTail
-
-ArgumentListTail ->   ',' ArgumentList
-                    | e
-
-Argument -> Expression
+ArgumentList ->   Expression ',' ArgumentList 
+                | Expression 
 
 OptionalParameterList ->   ParameterList
                          | e
 
-ParameterList ->  Parameter ParameterListTail
-
-ParameterListTail ->   ',' ParameterList
-                     | e
+ParameterList ->   Parameter ',' ParameterList 
+                 | Parameter
 
 Parameter -> IDENTIFIER ':' IDENTIFIER
 

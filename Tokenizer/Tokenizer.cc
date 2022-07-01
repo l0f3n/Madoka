@@ -279,13 +279,17 @@ Token Tokenizer::tokenize_next_token()
     {
         std::string text;
         while (is_digit(peek_next_char()))
+        {
             text.push_back(consume_next_char());
+        }
 
         if (peek_next_char() == '.')
         {
             text.push_back(consume_next_char());
             while (is_digit(peek_next_char()))
+            {
                 text.push_back(consume_next_char());
+            }
 
             return create_token(Token::Kind::Real, text, std::stod(text));
         }
@@ -298,8 +302,11 @@ Token Tokenizer::tokenize_next_token()
     {
         std::string text;
         while (is_identifier_char(peek_next_char()))
+        {
             text.push_back(consume_next_char());
+        }
 
+        // NOTE: Keywords
         if (text == "function")
         {
             return create_token(Token::Kind::Function, text);
@@ -312,9 +319,9 @@ Token Tokenizer::tokenize_next_token()
         {
             return create_token(Token::Kind::If, text);
         }
-        else if (text == "while")
+        else if (text == "for")
         {
-            return create_token(Token::Kind::While, text);
+            return create_token(Token::Kind::For, text);
         }
         else
         {
