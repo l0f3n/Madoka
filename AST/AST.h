@@ -297,3 +297,29 @@ class AST_Division : public AST_BinaryOperation
     int generate_quads(Quads *quads) const override;
     int type_check(TypeChecker *type_checker) const override;
 };
+
+class AST_BinaryRelation : public AST_Expression
+{
+  public:
+    AST_BinaryRelation(Location const, AST_Expression *lhs, AST_Expression *rhs,
+                       std::string name, int precedence);
+    ~AST_BinaryRelation();
+
+    void print(std::ostream &os, SymbolTable *symbol_table, bool is_left,
+               std::vector<bool> is_left_history) const override;
+
+    AST_Expression *lhs;
+    AST_Expression *rhs;
+
+    std::string name{""};
+    int         precedence;
+};
+
+class AST_GreaterThan : public AST_BinaryRelation
+{
+  public:
+    AST_GreaterThan(Location const, AST_Expression *, AST_Expression *);
+
+    int generate_quads(Quads *quads) const override;
+    int type_check(TypeChecker *type_checker) const override;
+};

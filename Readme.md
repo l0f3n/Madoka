@@ -35,6 +35,9 @@ Expression ->   MinusTerm '+' Expression
               | MinusTerm '-' Expression
               | MinusTerm '*' Expression
               | MinusTerm '/' Expression
+              | MinusTerm '=' Expression
+              | MinusTerm '<' Expression
+              | MinusTerm '>' Expression
               | MinusTerm
 
 OptionalExpression ->   Expression

@@ -18,7 +18,8 @@ void TypeChecker::type_check_arguments(AST_FunctionCall const *function_call,
 {
     if (parameter_index == -1 && arguments == nullptr)
     {
-        // NOTE: If both arguments and parameters stop at the same time its fine
+        // NOTE: If both arguments and parameters stop at the same time there is
+        // equally many of them, so its all good
         return;
     }
 
@@ -71,6 +72,55 @@ void TypeChecker::type_check_arguments(AST_FunctionCall const *function_call,
                          arguments->rest_expressions);
 }
 
+int TypeChecker::type_check_binary_operation(
+    AST_BinaryOperation const *binary_operation)
+{
+    AST_Expression *lhs = binary_operation->lhs;
+    AST_Expression *rhs = binary_operation->rhs;
+
+    int lhs_type = lhs->type_check(this);
+    int rhs_type = rhs->type_check(this);
+
+    if (lhs_type != rhs_type)
+    {
+        std::string lhs_type_name = symbol_table->get_name(lhs_type);
+        std::string rhs_type_name = symbol_table->get_name(rhs_type);
+
+        report_type_error(binary_operation->location,
+                          "Cannot use operation '" + binary_operation->name +
+                              "' on values of different types '" +
+                              lhs_type_name + "' and '" + rhs_type_name + "'");
+    }
+
+    // NOTE: lhs and rhs are the same type, so it doesn't matter which one we
+    // return
+    return lhs_type;
+}
+
+int TypeChecker::type_check_binary_relation(
+    AST_BinaryRelation const *binary_relation)
+{
+    AST_Expression *lhs = binary_relation->lhs;
+    AST_Expression *rhs = binary_relation->rhs;
+
+    int lhs_type = lhs->type_check(this);
+    int rhs_type = rhs->type_check(this);
+
+    if (lhs_type != rhs_type)
+    {
+        std::string lhs_type_name = symbol_table->get_name(lhs_type);
+        std::string rhs_type_name = symbol_table->get_name(rhs_type);
+
+        report_type_error(binary_relation->location,
+                          "Cannot use comparison '" + binary_relation->name +
+                              "' on values of different types '" +
+                              lhs_type_name + "' and '" + rhs_type_name + "'");
+    }
+
+    // NOTE: Comparisons always return bool
+    return symbol_table->type_bool;
+}
+
 // =====================================
 // ===== Definition of AST methods =====
 // =====================================
@@ -83,7 +133,28 @@ int AST_ParameterList::type_check(TypeChecker *type_checker) const
     return -1;
 }
 
-int AST_If::type_check(TypeChecker *type_checker) const { return -1; }
+int AST_If::type_check(TypeChecker *type_checker) const
+{
+    ASSERT(condition != nullptr);
+    int condition_type = condition->type_check(type_checker);
+
+    if (condition_type != type_checker->symbol_table->type_bool)
+    {
+        std::string type_name =
+            type_checker->symbol_table->get_name(condition_type);
+
+        report_type_error(
+            location,
+            "If statement condition expected type 'bool', got type '" +
+                type_name + "'");
+    }
+
+    ASSERT(body != nullptr);
+
+    body->type_check(type_checker);
+
+    return -1;
+}
 
 int AST_Return::type_check(TypeChecker *type_checker) const
 {
@@ -242,90 +313,42 @@ int AST_Real::type_check(TypeChecker *type_checker) const
 
 int AST_UnaryMinus::type_check(TypeChecker *type_checker) const
 {
-    return expr->type_check(type_checker);
+    int type = expr->type_check(type_checker);
+
+    if (type != type_checker->symbol_table->type_integer &&
+        type != type_checker->symbol_table->type_real)
+    {
+        report_type_error(
+            location,
+            "Unary minus expected type 'int' or type 'real', not type '" +
+                type_checker->symbol_table->get_name(type) + "'");
+    }
+
+    return type;
 }
 
 int AST_Plus::type_check(TypeChecker *type_checker) const
 {
-
-    int lhs_type = lhs->type_check(type_checker);
-    int rhs_type = rhs->type_check(type_checker);
-
-    if (lhs_type != rhs_type)
-    {
-        std::string lhs_type_name =
-            type_checker->symbol_table->get_name(lhs_type);
-
-        std::string rhs_type_name =
-            type_checker->symbol_table->get_name(rhs_type);
-
-        report_type_error(location, "Cannot add values of type '" +
-                                        lhs_type_name + "' and '" +
-                                        rhs_type_name + "'");
-    }
-
-    return lhs_type;
+    return type_checker->type_check_binary_operation(this);
 }
 
 int AST_Minus::type_check(TypeChecker *type_checker) const
 {
-    int lhs_type = lhs->type_check(type_checker);
-    int rhs_type = rhs->type_check(type_checker);
-
-    if (lhs_type != rhs_type)
-    {
-        std::string lhs_type_name =
-            type_checker->symbol_table->get_name(lhs_type);
-
-        std::string rhs_type_name =
-            type_checker->symbol_table->get_name(rhs_type);
-
-        report_type_error(location, "Cannot subtract values of type '" +
-                                        lhs_type_name + "' and '" +
-                                        rhs_type_name + "'");
-    }
-
-    return lhs_type;
+    return type_checker->type_check_binary_operation(this);
 }
 
 int AST_Multiplication::type_check(TypeChecker *type_checker) const
 {
-    int lhs_type = lhs->type_check(type_checker);
-    int rhs_type = rhs->type_check(type_checker);
-
-    if (lhs_type != rhs_type)
-    {
-        std::string lhs_type_name =
-            type_checker->symbol_table->get_name(lhs_type);
-
-        std::string rhs_type_name =
-            type_checker->symbol_table->get_name(rhs_type);
-
-        report_type_error(location, "Cannot multiply values of type '" +
-                                        lhs_type_name + "' and '" +
-                                        rhs_type_name + "'");
-    }
-
-    return lhs_type;
+    return type_checker->type_check_binary_operation(this);
 }
 
 int AST_Division::type_check(TypeChecker *type_checker) const
 {
-    int lhs_type = lhs->type_check(type_checker);
-    int rhs_type = rhs->type_check(type_checker);
+    return type_checker->type_check_binary_operation(this);
+}
 
-    if (lhs_type != rhs_type)
-    {
-        std::string lhs_type_name =
-            type_checker->symbol_table->get_name(lhs_type);
+int AST_GreaterThan::type_check(TypeChecker *type_checker) const
+{
 
-        std::string rhs_type_name =
-            type_checker->symbol_table->get_name(rhs_type);
-
-        report_type_error(location, "Cannot divide values of type '" +
-                                        lhs_type_name + "' and '" +
-                                        rhs_type_name + "'");
-    }
-
-    return lhs_type;
+    return type_checker->type_check_binary_relation(this);
 }

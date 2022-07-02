@@ -280,3 +280,18 @@ void AST_VariableAssignment::print(std::ostream &os, SymbolTable *symbol_table,
 
     is_left_history.pop_back();
 }
+
+void AST_BinaryRelation::print(std::ostream &os, SymbolTable *symbol_table,
+                               bool              is_left,
+                               std::vector<bool> is_left_history) const
+{
+    os << indent(is_left_history) << "+ " << name << " (" << location << ")"
+       << std::endl;
+
+    is_left_history.push_back(is_left);
+
+    lhs->print(os, symbol_table, true, is_left_history);
+    rhs->print(os, symbol_table, false, is_left_history);
+
+    is_left_history.pop_back();
+}

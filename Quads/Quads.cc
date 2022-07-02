@@ -42,6 +42,38 @@ void Quads::generate_argument_quads(AST_ExpressionList *arguments, int index)
     generate_argument_quads(arguments->rest_expressions, ++index);
 }
 
+int Quads::generate_binary_operation_quads(
+    AST_BinaryOperation const *binary_operation, Quad::Operation operation)
+{
+    AST_Expression *lhs = binary_operation->lhs;
+    AST_Expression *rhs = binary_operation->rhs;
+
+    ASSERT(lhs != nullptr);
+    ASSERT(rhs != nullptr);
+
+    int operand1 = lhs->generate_quads(this);
+    int operand2 = rhs->generate_quads(this);
+
+    Symbol *operand1_symbol = symbol_table->get_symbol(operand1);
+    ASSERT(operand1_symbol != nullptr);
+
+    // NOTE: They have already been type checked and are the same type, right
+    // here we just need to figure out which one
+    if (operand1_symbol->type == symbol_table->type_integer)
+    {
+        int type = symbol_table->type_integer;
+        int dest = symbol_table->generate_temporary_variable(type);
+        add_quad(new Quad{operation, operand1, operand2, dest});
+        return dest;
+    }
+    else
+    {
+        report_internal_compiler_error(
+            "Binary operation not implemented for type 'real'");
+        return -1;
+    }
+}
+
 std::ostream &operator<<(std::ostream &os, Quads const &q)
 {
     for (int i = 0; i < q.quads.size(); i++)
@@ -63,12 +95,18 @@ std::ostream &operator<<(std::ostream &os, Quad::Operation const &op)
     switch (op)
     {
     case Quad::Operation::I_ADD: return os << "add";
+    case Quad::Operation::I_MINUS: return os << "minus";
+    case Quad::Operation::I_MULTIPLICATION: return os << "multiplication";
+    case Quad::Operation::I_DIVISION: return os << "division";
     case Quad::Operation::I_STORE: return os << "store";
     case Quad::Operation::ASSIGN: return os << "assign";
     case Quad::Operation::ARGUMENT: return os << "argument";
     case Quad::Operation::LABEL: return os << "label";
     case Quad::Operation::FUNCTION_CALL: return os << "function call";
     case Quad::Operation::RETURN: return os << "return";
+    case Quad::Operation::UNARY_MINUS: return os << "unary minus";
+    case Quad::Operation::I_GREATER_THAN: return os << "greater than";
+    case Quad::Operation::IF: return os << "if";
     default: return os << "Unknown operation";
     }
 }
@@ -104,59 +142,40 @@ int AST_Real::generate_quads(Quads *quads) const
 
 int AST_UnaryMinus::generate_quads(Quads *quads) const
 {
-    report_internal_compiler_error(std::string("AST_UnaryMinus::") + __func__ +
-                                   "(): no implemented");
-    return -1;
+    // TODO: We probably need to handle integers and reals differently, since
+    // you convert to negative differently
+
+    int     operand1 = expr->generate_quads(quads);
+    Symbol *symbol   = quads->symbol_table->get_symbol(operand1);
+
+    int dest = quads->symbol_table->generate_temporary_variable(symbol->type);
+
+    quads->add_quad(new Quad(Quad::Operation::UNARY_MINUS, operand1, -1, dest));
+
+    return dest;
 }
 
 int AST_Plus::generate_quads(Quads *quads) const
 {
-    ASSERT(lhs != nullptr);
-    ASSERT(rhs != nullptr);
-
-    int operand1 = lhs->generate_quads(quads);
-    int operand2 = rhs->generate_quads(quads);
-
-    Symbol *operand1_symbol = quads->symbol_table->get_symbol(operand1);
-    ASSERT(operand1_symbol != nullptr);
-
-    // NOTE: They have already been type checked and are the same type, right
-    // here we just need to figure out which one
-    if (operand1_symbol->type == quads->symbol_table->type_integer)
-    {
-        int type = quads->symbol_table->type_integer;
-        int dest = quads->symbol_table->generate_temporary_variable(type);
-        quads->add_quad(
-            new Quad{Quad::Operation::I_ADD, operand1, operand2, dest});
-        return dest;
-    }
-    else
-    {
-        report_internal_compiler_error(
-            "Addition not implemented for type 'real'");
-        return -1;
-    }
+    return quads->generate_binary_operation_quads(this, Quad::Operation::I_ADD);
 }
 
 int AST_Minus::generate_quads(Quads *quads) const
 {
-    report_internal_compiler_error(std::string("AST_Minus::") + __func__ +
-                                   "(): no implemented");
-    return -1;
+    return quads->generate_binary_operation_quads(this,
+                                                  Quad::Operation::I_MINUS);
 }
 
 int AST_Multiplication::generate_quads(Quads *quads) const
 {
-    report_internal_compiler_error(std::string("AST_Multiplication::") +
-                                   __func__ + "(): no implemented");
-    return -1;
+    return quads->generate_binary_operation_quads(
+        this, Quad::Operation::I_MULTIPLICATION);
 }
 
 int AST_Division::generate_quads(Quads *quads) const
 {
-    report_internal_compiler_error(std::string("AST_Division::") + __func__ +
-                                   "(): no implemented");
-    return -1;
+    return quads->generate_binary_operation_quads(this,
+                                                  Quad::Operation::I_DIVISION);
 }
 
 int AST_ParameterList::generate_quads(Quads *quads) const
@@ -186,7 +205,26 @@ int AST_StatementList::generate_quads(Quads *quads) const
     return -1;
 }
 
-int AST_If::generate_quads(Quads *quads) const { return -1; }
+int AST_If::generate_quads(Quads *quads) const
+{
+    ASSERT(condition != nullptr);
+    ASSERT(body != nullptr);
+
+    int false_label = quads->symbol_table->get_next_label();
+
+    // NOTE: Store result of condition calculation in dest
+    int condition_index = condition->generate_quads(quads);
+    quads->add_quad(
+        new Quad(Quad::Operation::IF, condition_index, false_label, -1));
+
+    // NOTE: If result is 1 continue executing code
+    body->generate_quads(quads);
+
+    // NOTE: Otherwise jump over it to here
+    quads->add_quad(new Quad(Quad::Operation::LABEL, false_label, -1, -1));
+
+    return -1;
+}
 
 int AST_VariableDefinition::generate_quads(Quads *quads) const
 {
@@ -254,4 +292,37 @@ int AST_FunctionCall::generate_quads(Quads *quads) const
                              ident->symbol_index, -1, address));
 
     return address;
+}
+
+int AST_GreaterThan::generate_quads(Quads *quads) const
+{
+
+    // AST_Expression *lhs = binary_operation->lhs;
+    // AST_Expression *rhs = binary_operation->rhs;
+
+    ASSERT(lhs != nullptr);
+    ASSERT(rhs != nullptr);
+
+    int operand1 = lhs->generate_quads(quads);
+    int operand2 = rhs->generate_quads(quads);
+
+    Symbol *operand1_symbol = quads->symbol_table->get_symbol(operand1);
+    ASSERT(operand1_symbol != nullptr);
+    int type = operand1_symbol->type;
+
+    // NOTE: They have already been type checked and are the same type, right
+    // here we just need to figure out which one
+    if (type == quads->symbol_table->type_integer)
+    {
+        int dest = quads->symbol_table->generate_temporary_variable(type);
+        quads->add_quad(new Quad{Quad::Operation::I_GREATER_THAN, operand1,
+                                 operand2, dest});
+        return dest;
+    }
+    else
+    {
+        report_internal_compiler_error(
+            "Binary operation not implemented for type 'real'");
+        return -1;
+    }
 }

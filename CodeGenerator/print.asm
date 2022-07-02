@@ -11,6 +11,15 @@ __print_integer:
 	;; Before calling this function, store the value that you want to
 	;; print in rax
 
+	push rax					; Save rax for later, to see if its negative
+
+	test rax, rax
+	jns _prepare_conversion 	; If not negative
+
+	;; Convert negative number to positive
+	not rax
+	add rax, 1
+
 _prepare_conversion:
 	mov rcx, printArea 			; Load beginning of printArea
 
@@ -33,6 +42,18 @@ _conv_digits_to_chars:
 
 	cmp rax, 0					; Do we have any more numbers to convert?
 	jne _conv_digits_to_chars	; If we do, repeat this loop
+
+	pop rax
+
+	test rax, rax
+	jns _print_chars			; If its not negative, just print chars
+
+	;; If its negative, add a minus sign to the front
+	inc rcx						; Move to next index
+	mov [printAreaIndex], rcx	; Store new index
+
+	mov rbx, 45					; Load hyphen '-'
+	mov [rcx], rbx				; Store hyphen
 
 _print_chars:
 	mov  rcx, [printAreaIndex]	; Load character

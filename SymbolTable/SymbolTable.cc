@@ -14,6 +14,7 @@ SymbolTable::SymbolTable()
     type_void    = insert_type(no_location, "void", 0);
     type_integer = insert_type(no_location, "int", 8);
     type_real    = insert_type(no_location, "real", 8);
+    type_bool    = insert_type(no_location, "bool", 8);
 
     // NOTE: Insert a default global function that always gets called in the
     // beginning of the program. This is a bit slower but makes everything else

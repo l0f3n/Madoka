@@ -10,7 +10,8 @@
 CodeGenerator::CodeGenerator(std::ostream &out, SymbolTable *symbol_table)
     : out{out}, symbol_table{symbol_table}
 {
-    std::ifstream is{"print.asm"};
+    // TODO: Make sure this path is always accessible
+    std::ifstream is{"../CodeGenerator/print.asm"};
     out << is.rdbuf() << std::endl;
 
     generate_entry_code();
@@ -29,8 +30,8 @@ void CodeGenerator::generate_predefined_functions() const
     operation("mov rax, [" + a1 + "]");
 
     // TODO: When we call print, we want it to automatically call the correct
-    // function for printing an integer, a real or a string. In other words,
-    // some sort of function overloading.
+    // function for printing an integer, a real, a bool or a string. In other
+    // words, some sort of function overloading.
     operation("call __print_integer");
 
     out << std::endl;
@@ -64,7 +65,15 @@ std::string CodeGenerator::address(int symbol_index) const
 
     // NOTE: Right now, we don't support defining functions inside other
     // functions, so we can only access variables in the current scope
-    ASSERT(symbol->level - 1 == function->level);
+    // ASSERT(symbol->level - 1 == function->level);
+    if (symbol->level - 1 != function->level)
+    {
+        symbol_table->print(std::cout);
+        std::cout << std::endl;
+
+        std::cout << *symbol << std::endl;
+        std::cout << *function << std::endl;
+    }
 
     int offset;
 
@@ -196,6 +205,90 @@ void CodeGenerator::generate_code(Quads &quads)
             load("r9", quad->operand2);
             operation("add r8, r9");
             store(quad->dest, "r8");
+
+            break;
+        }
+        case Quad::Operation::I_MINUS:
+        {
+            load("r8", quad->operand1);
+            load("r9", quad->operand2);
+            operation("sub r8, r9");
+            store(quad->dest, "r8");
+
+            break;
+        }
+        case Quad::Operation::I_MULTIPLICATION:
+        {
+            load("r8", quad->operand1);
+            load("r9", quad->operand2);
+            operation("imul r8, r9");
+            store(quad->dest, "r8");
+
+            break;
+        }
+        case Quad::Operation::I_DIVISION:
+        {
+            // TODO: If one of the operands are negative, we need to do
+            // something about it
+            operation("mov rdx, 0");
+            load("rax", quad->operand1);
+            load("rbx", quad->operand2);
+            operation("idiv rbx");
+            store(quad->dest, "rax");
+
+            break;
+        }
+        case Quad::Operation::UNARY_MINUS:
+        {
+            // NOTE: Integers are stored as twos complement
+            load("rax", quad->operand1);
+            operation("not rax");
+            operation("add rax, 1");
+            store(quad->dest, "rax");
+
+            break;
+        }
+        case Quad::Operation::I_GREATER_THAN:
+        {
+            // NOTE: Store 1 in dest if operand1 is greater than operand2,
+            // otherwise store 0
+
+            ASSERT(quad->operand1 != -1);
+            ASSERT(quad->operand2 != -1);
+            ASSERT(quad->dest != -1);
+
+            // TODO: We can't print bools yet, so I don't know if this is
+            // correct or not
+
+            load("rax", quad->operand1);
+            load("rbx", quad->operand2);
+            operation("mov rcx, 0");
+            operation("mov rdx, 1");
+
+            operation("cmp rax, rbx");
+            operation("cmovg rcx, rdx");
+
+            store(quad->dest, "rcx");
+
+            break;
+        }
+        case Quad::Operation::LABEL:
+        {
+            ASSERT(quad->operand1 != -1);
+
+            label(std::to_string(quad->operand1));
+
+            break;
+        }
+        case Quad::Operation::IF:
+        {
+            ASSERT(quad->operand1 != -1);
+            ASSERT(quad->operand2 != -1);
+
+            load("rax", quad->operand1);
+            operation("mov rbx, 1");
+            operation("cmp rax, rbx");
+            operation("jne L" + std::to_string(quad->operand2));
 
             break;
         }

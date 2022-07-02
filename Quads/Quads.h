@@ -11,16 +11,25 @@ struct Quad
   public:
     enum class Operation
     {
-        // Integer operations
         I_STORE,
-        I_ADD,
 
-        // Operations that work on both
+        // Integer binary operations
+        I_ADD,
+        I_MINUS,
+        I_MULTIPLICATION,
+        I_DIVISION,
+
+        // Integer binary relations
+        I_GREATER_THAN,
+
+        // Misc
         ASSIGN,
         FUNCTION_CALL,
         LABEL,
         ARGUMENT,
         RETURN,
+        UNARY_MINUS,
+        IF,
     };
 
     Quad(Operation, long, long, long);
@@ -45,6 +54,8 @@ class Quads
     Quad *get_current_quad();
 
     void generate_argument_quads(AST_ExpressionList *arguments, int index);
+    int  generate_binary_operation_quads(AST_BinaryOperation const *,
+                                         Quad::Operation);
 
     friend std::ostream &operator<<(std::ostream &os, Quads const &q);
 

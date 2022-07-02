@@ -571,14 +571,9 @@ AST_Expression *Parser::parse_expression()
     }
     case Token::Kind::GreaterThan:
     {
-        report_parse_error(tokenizer.peek(1).location,
-                           "Greater than not implemented");
         tokenizer.eat();
 
-        parse_expression();
-
-        // TODO: Return proper value
-        return nullptr;
+        return new AST_GreaterThan(lhs->location, lhs, parse_expression());
     }
     default:
     {

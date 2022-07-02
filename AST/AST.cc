@@ -197,3 +197,21 @@ AST_FunctionCall::~AST_FunctionCall()
     delete ident;
     delete arguments;
 }
+
+AST_BinaryRelation::AST_BinaryRelation(Location const  location,
+                                       AST_Expression *lhs, AST_Expression *rhs,
+                                       std::string name, int precedence)
+    : AST_Node{location}, lhs{lhs}, rhs{rhs}, name{name}, precedence{precedence}
+{}
+
+AST_BinaryRelation::~AST_BinaryRelation()
+{
+    delete rhs;
+    delete lhs;
+}
+
+AST_GreaterThan::AST_GreaterThan(Location const location, AST_Expression *lhs,
+                                 AST_Expression *rhs)
+    : AST_Node{location}, AST_BinaryRelation{location, lhs, rhs, "Greater than",
+                                             4}
+{}

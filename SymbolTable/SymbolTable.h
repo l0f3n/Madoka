@@ -45,6 +45,7 @@ class SymbolTable
     int type_void{-1};
     int type_integer{-1};
     int type_real{-1};
+    int type_bool{-1};
 
   private:
     int hash(const std::string &name) const;
