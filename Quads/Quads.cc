@@ -74,6 +74,30 @@ int Quads::generate_binary_operation_quads(
     }
 }
 
+int Quads::generate_binary_relation_quads(
+    AST_BinaryRelation const *binary_relation, Quad::Operation operation)
+{
+    AST_Expression *lhs = binary_relation->lhs;
+    AST_Expression *rhs = binary_relation->rhs;
+
+    ASSERT(lhs != nullptr);
+    ASSERT(rhs != nullptr);
+
+    int operand1 = lhs->generate_quads(this);
+    int operand2 = rhs->generate_quads(this);
+
+    Symbol *operand1_symbol = symbol_table->get_symbol(operand1);
+    ASSERT(operand1_symbol != nullptr);
+
+    // TODO: I think comparisons between real numbers are done in the same way
+    // as integers, it will cause a bug later if it's not though.
+    int type = symbol_table->type_bool;
+    int dest = symbol_table->generate_temporary_variable(type);
+    add_quad(new Quad{operation, operand1, operand2, dest});
+
+    return dest;
+}
+
 std::ostream &operator<<(std::ostream &os, Quads const &q)
 {
     for (int i = 0; i < q.quads.size(); i++)
@@ -105,7 +129,7 @@ std::ostream &operator<<(std::ostream &os, Quad::Operation const &op)
     case Quad::Operation::FUNCTION_CALL: return os << "function call";
     case Quad::Operation::RETURN: return os << "return";
     case Quad::Operation::UNARY_MINUS: return os << "unary minus";
-    case Quad::Operation::I_GREATER_THAN: return os << "greater than";
+    case Quad::Operation::GREATER_THAN: return os << "greater than";
     case Quad::Operation::IF: return os << "if";
     default: return os << "Unknown operation";
     }
@@ -294,35 +318,31 @@ int AST_FunctionCall::generate_quads(Quads *quads) const
     return address;
 }
 
+int AST_LesserThan::generate_quads(Quads *quads) const
+{
+    return quads->generate_binary_relation_quads(this,
+                                                 Quad::Operation::LESSER_THAN);
+}
+
+int AST_LesserThanOrEqual::generate_quads(Quads *quads) const
+{
+    return quads->generate_binary_relation_quads(
+        this, Quad::Operation::LESSER_THAN_OR_EQUAL);
+}
+
+int AST_DoubleEquals::generate_quads(Quads *quads) const
+{
+    return quads->generate_binary_relation_quads(this, Quad::Operation::EQUAL);
+}
+
 int AST_GreaterThan::generate_quads(Quads *quads) const
 {
+    return quads->generate_binary_relation_quads(this,
+                                                 Quad::Operation::GREATER_THAN);
+}
 
-    // AST_Expression *lhs = binary_operation->lhs;
-    // AST_Expression *rhs = binary_operation->rhs;
-
-    ASSERT(lhs != nullptr);
-    ASSERT(rhs != nullptr);
-
-    int operand1 = lhs->generate_quads(quads);
-    int operand2 = rhs->generate_quads(quads);
-
-    Symbol *operand1_symbol = quads->symbol_table->get_symbol(operand1);
-    ASSERT(operand1_symbol != nullptr);
-    int type = operand1_symbol->type;
-
-    // NOTE: They have already been type checked and are the same type, right
-    // here we just need to figure out which one
-    if (type == quads->symbol_table->type_integer)
-    {
-        int dest = quads->symbol_table->generate_temporary_variable(type);
-        quads->add_quad(new Quad{Quad::Operation::I_GREATER_THAN, operand1,
-                                 operand2, dest});
-        return dest;
-    }
-    else
-    {
-        report_internal_compiler_error(
-            "Binary operation not implemented for type 'real'");
-        return -1;
-    }
+int AST_GreaterThanOrEquals::generate_quads(Quads *quads) const
+{
+    return quads->generate_binary_relation_quads(
+        this, Quad::Operation::GREATER_THAN_OR_EQUAL);
 }

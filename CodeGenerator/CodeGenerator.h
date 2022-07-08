@@ -35,6 +35,8 @@ class CodeGenerator
     void load(std::string reg, int symbol_index) const;
     void store(int symbol_index, std::string reg) const;
 
+    void generate_comparison_code(Quad const *, std::string const &) const;
+
     std::ostream &out;
 
     SymbolTable *symbol_table;

@@ -210,8 +210,33 @@ AST_BinaryRelation::~AST_BinaryRelation()
     delete lhs;
 }
 
+AST_LesserThan::AST_LesserThan(Location const location, AST_Expression *lhs,
+                               AST_Expression *rhs)
+    : AST_Node{location}, AST_BinaryRelation{location, lhs, rhs, "Lesser than",
+                                             4}
+{}
+
+AST_LesserThanOrEqual::AST_LesserThanOrEqual(Location const  location,
+                                             AST_Expression *lhs,
+                                             AST_Expression *rhs)
+    : AST_Node{location}, AST_BinaryRelation{location, lhs, rhs,
+                                             "Lesser than or equal", 4}
+{}
+
+AST_DoubleEquals::AST_DoubleEquals(Location const location, AST_Expression *lhs,
+                                   AST_Expression *rhs)
+    : AST_Node{location}, AST_BinaryRelation{location, lhs, rhs, "Equality", 4}
+{}
+
 AST_GreaterThan::AST_GreaterThan(Location const location, AST_Expression *lhs,
                                  AST_Expression *rhs)
     : AST_Node{location}, AST_BinaryRelation{location, lhs, rhs, "Greater than",
                                              4}
+{}
+
+AST_GreaterThanOrEquals::AST_GreaterThanOrEquals(Location const  location,
+                                                 AST_Expression *lhs,
+                                                 AST_Expression *rhs)
+    : AST_Node{location}, AST_BinaryRelation{location, lhs, rhs,
+                                             "Greater than or equals", 4}
 {}

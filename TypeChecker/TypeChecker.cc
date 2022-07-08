@@ -347,8 +347,23 @@ int AST_Division::type_check(TypeChecker *type_checker) const
     return type_checker->type_check_binary_operation(this);
 }
 
+int AST_LesserThan::type_check(TypeChecker *type_checker) const
+{
+    return type_checker->type_check_binary_relation(this);
+}
+int AST_LesserThanOrEqual::type_check(TypeChecker *type_checker) const
+{
+    return type_checker->type_check_binary_relation(this);
+}
+int AST_DoubleEquals::type_check(TypeChecker *type_checker) const
+{
+    return type_checker->type_check_binary_relation(this);
+}
 int AST_GreaterThan::type_check(TypeChecker *type_checker) const
 {
-
+    return type_checker->type_check_binary_relation(this);
+}
+int AST_GreaterThanOrEquals::type_check(TypeChecker *type_checker) const
+{
     return type_checker->type_check_binary_relation(this);
 }

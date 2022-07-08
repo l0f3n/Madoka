@@ -187,7 +187,16 @@ Token Tokenizer::tokenize_next_token()
     case '=':
     {
         consume_next_char();
-        return create_token(Token::Kind::Equals, "=");
+
+        if (peek_next_char() == '=')
+        {
+            consume_next_char();
+            return create_token(Token::Kind::DoubleEquals, "==");
+        }
+        else
+        {
+            return create_token(Token::Kind::Equals, "=");
+        }
     }
     case '+':
     {
@@ -216,17 +225,36 @@ Token Tokenizer::tokenize_next_token()
     case '/':
     {
         consume_next_char();
+
         return create_token(Token::Kind::Division, "/");
     }
     case '>':
     {
         consume_next_char();
-        return create_token(Token::Kind::GreaterThan, ">");
+
+        if (peek_next_char() == '=')
+        {
+            consume_next_char();
+            return create_token(Token::Kind::GreaterThanOrEqual, ">=");
+        }
+        else
+        {
+            return create_token(Token::Kind::GreaterThan, ">");
+        }
     }
     case '<':
     {
         consume_next_char();
-        return create_token(Token::Kind::LesserThan, "<");
+
+        if (peek_next_char() == '=')
+        {
+            consume_next_char();
+            return create_token(Token::Kind::LesserThanOrEqual, "<=");
+        }
+        else
+        {
+            return create_token(Token::Kind::LesserThan, "<");
+        }
     }
     case '(':
     {

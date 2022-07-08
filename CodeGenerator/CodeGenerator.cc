@@ -122,6 +122,27 @@ void CodeGenerator::store(int symbol_index, std::string reg) const
     operation("mov [" + address(symbol_index) + "], " + reg);
 }
 
+void CodeGenerator::generate_comparison_code(Quad const        *quad,
+                                             std::string const &instr) const
+{
+    ASSERT(quad->operand1 != -1);
+    ASSERT(quad->operand2 != -1);
+    ASSERT(quad->dest != -1);
+
+    // NOTE: Store either 0 (false) or 1 (true), as the result of the comparison
+
+    load("rax", quad->operand1);
+    load("rbx", quad->operand2);
+
+    operation("mov rcx, 0");
+    operation("mov rdx, 1");
+
+    operation("cmp rax, rbx");
+    operation(instr + " rcx, rdx");
+
+    store(quad->dest, "rcx");
+}
+
 void CodeGenerator::generate_code(Quads &quads)
 {
     FunctionSymbol *function =
@@ -248,27 +269,33 @@ void CodeGenerator::generate_code(Quads &quads)
 
             break;
         }
-        case Quad::Operation::I_GREATER_THAN:
+        case Quad::Operation::LESSER_THAN:
         {
-            // NOTE: Store 1 in dest if operand1 is greater than operand2,
-            // otherwise store 0
+            generate_comparison_code(quad, "cmovl");
 
-            ASSERT(quad->operand1 != -1);
-            ASSERT(quad->operand2 != -1);
-            ASSERT(quad->dest != -1);
+            break;
+        }
+        case Quad::Operation::LESSER_THAN_OR_EQUAL:
+        {
+            generate_comparison_code(quad, "cmovle");
 
-            // TODO: We can't print bools yet, so I don't know if this is
-            // correct or not
+            break;
+        }
+        case Quad::Operation::EQUAL:
+        {
+            generate_comparison_code(quad, "cmove");
 
-            load("rax", quad->operand1);
-            load("rbx", quad->operand2);
-            operation("mov rcx, 0");
-            operation("mov rdx, 1");
+            break;
+        }
+        case Quad::Operation::GREATER_THAN:
+        {
+            generate_comparison_code(quad, "cmovg");
 
-            operation("cmp rax, rbx");
-            operation("cmovg rcx, rdx");
-
-            store(quad->dest, "rcx");
+            break;
+        }
+        case Quad::Operation::GREATER_THAN_OR_EQUAL:
+        {
+            generate_comparison_code(quad, "cmovge");
 
             break;
         }

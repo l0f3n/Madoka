@@ -315,10 +315,46 @@ class AST_BinaryRelation : public AST_Expression
     int         precedence;
 };
 
+class AST_LesserThan : public AST_BinaryRelation
+{
+  public:
+    AST_LesserThan(Location const, AST_Expression *, AST_Expression *);
+
+    int generate_quads(Quads *quads) const override;
+    int type_check(TypeChecker *type_checker) const override;
+};
+
+class AST_LesserThanOrEqual : public AST_BinaryRelation
+{
+  public:
+    AST_LesserThanOrEqual(Location const, AST_Expression *, AST_Expression *);
+
+    int generate_quads(Quads *quads) const override;
+    int type_check(TypeChecker *type_checker) const override;
+};
+
+class AST_DoubleEquals : public AST_BinaryRelation
+{
+  public:
+    AST_DoubleEquals(Location const, AST_Expression *, AST_Expression *);
+
+    int generate_quads(Quads *quads) const override;
+    int type_check(TypeChecker *type_checker) const override;
+};
+
 class AST_GreaterThan : public AST_BinaryRelation
 {
   public:
     AST_GreaterThan(Location const, AST_Expression *, AST_Expression *);
+
+    int generate_quads(Quads *quads) const override;
+    int type_check(TypeChecker *type_checker) const override;
+};
+
+class AST_GreaterThanOrEquals : public AST_BinaryRelation
+{
+  public:
+    AST_GreaterThanOrEquals(Location const, AST_Expression *, AST_Expression *);
 
     int generate_quads(Quads *quads) const override;
     int type_check(TypeChecker *type_checker) const override;

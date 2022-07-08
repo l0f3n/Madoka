@@ -560,20 +560,36 @@ AST_Expression *Parser::parse_expression()
     }
     case Token::Kind::LesserThan:
     {
-        report_parse_error(tokenizer.peek(1).location,
-                           "Lesser than not implemented");
         tokenizer.eat();
 
-        parse_expression();
+        return new AST_LesserThan(lhs->location, lhs, parse_expression());
+    }
+    case Token::Kind::LesserThanOrEqual:
+    {
+        tokenizer.eat();
 
-        // TODO: Return proper value
-        return nullptr;
+        return new AST_LesserThanOrEqual(lhs->location, lhs,
+                                         parse_expression());
+    }
+    case Token::Kind::DoubleEquals:
+    {
+        tokenizer.eat();
+
+        return new AST_DoubleEquals(lhs->location, lhs, parse_expression());
     }
     case Token::Kind::GreaterThan:
     {
         tokenizer.eat();
 
         return new AST_GreaterThan(lhs->location, lhs, parse_expression());
+    }
+
+    case Token::Kind::GreaterThanOrEqual:
+    {
+        tokenizer.eat();
+
+        return new AST_GreaterThanOrEquals(lhs->location, lhs,
+                                           parse_expression());
     }
     default:
     {

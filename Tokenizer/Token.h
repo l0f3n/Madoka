@@ -27,8 +27,11 @@ struct Token
         Division,
 
         // Comparison
-        GreaterThan,
         LesserThan,
+        LesserThanOrEqual,
+        DoubleEquals,
+        GreaterThan,
+        GreaterThanOrEqual,
 
         // Keywords
         Function,

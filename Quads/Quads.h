@@ -19,8 +19,12 @@ struct Quad
         I_MULTIPLICATION,
         I_DIVISION,
 
-        // Integer binary relations
-        I_GREATER_THAN,
+        // Binary relations
+        LESSER_THAN,
+        LESSER_THAN_OR_EQUAL,
+        EQUAL,
+        GREATER_THAN,
+        GREATER_THAN_OR_EQUAL,
 
         // Misc
         ASSIGN,
@@ -56,6 +60,8 @@ class Quads
     void generate_argument_quads(AST_ExpressionList *arguments, int index);
     int  generate_binary_operation_quads(AST_BinaryOperation const *,
                                          Quad::Operation);
+    int  generate_binary_relation_quads(AST_BinaryRelation const *,
+                                        Quad::Operation);
 
     friend std::ostream &operator<<(std::ostream &os, Quads const &q);
 
