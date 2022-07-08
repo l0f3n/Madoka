@@ -1,0 +1,30 @@
+function main()
+{
+    less: int = 1
+    more: int = 2
+
+    if (less < more)
+    {
+        print(1)
+    }
+
+    if (less <= more)
+    {
+        print(2)
+    }
+
+    if (less == more)
+    {
+        print(3)
+    }
+
+    if (less > more)
+    {
+        print(4)
+    }
+
+    if (less >= more)
+    {
+        print(5)
+    }
+}

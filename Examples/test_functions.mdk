@@ -1,0 +1,40 @@
+function no_args_return_void()
+{
+    print(1)
+}
+
+function one_arg_return_void(a: int)
+{
+    print(a)
+}
+
+function many_args_return_void(a: int, b: int, c: int)
+{
+    print(a+b+c)
+}
+
+function no_args_return_int() -> int
+{
+    return 4
+}
+
+function one_arg_return_int(a: int) -> int
+{
+    return a
+}
+
+function many_args_return_int(a: int, b: int, c: int) -> int
+{
+    return a + b + c
+}
+
+function main()
+{
+    no_args_return_void()
+    one_arg_return_void(2)
+    many_args_return_void(1, 1, 1)
+
+    print(no_args_return_int())
+    print(one_arg_return_int(5))
+    print(many_args_return_int(1, 2, 3))
+}

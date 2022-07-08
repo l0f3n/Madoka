@@ -1,0 +1,17 @@
+function main()
+{
+    a: int = 1
+    print(a)
+
+    a = a + 1
+    print(a)
+
+    b: int = a - (-2)
+    print(b)
+
+    b = b*2
+    print(b)
+
+    c: int = b / 2
+    print(c)
+}
