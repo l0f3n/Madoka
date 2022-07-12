@@ -232,6 +232,20 @@ class AST_Real : public AST_Expression
     double value;
 };
 
+class AST_Bool : public AST_Expression
+{
+  public:
+    AST_Bool(Location const, bool value);
+
+    void print(std::ostream &os, SymbolTable *symbol_table, bool is_left,
+               std::vector<bool> is_left_history) const override;
+
+    int generate_quads(Quads *quads) const override;
+    int type_check(TypeChecker *type_checker) const override;
+
+    bool value;
+};
+
 class AST_UnaryMinus : public AST_Expression
 {
   public:

@@ -1,0 +1,8 @@
+function main()
+{
+    print(1)
+    print(-27)
+
+    print(true)
+    print(false)
+}

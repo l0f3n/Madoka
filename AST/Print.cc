@@ -59,6 +59,13 @@ void AST_Real::print(std::ostream &os, SymbolTable *symbol_table, bool is_left,
        << std::endl;
 }
 
+void AST_Bool::print(std::ostream &os, SymbolTable *symbol_table, bool is_left,
+                     std::vector<bool> is_left_history) const
+{
+    os << indent(is_left_history) << value << " (" << location << ")"
+       << std::endl;
+}
+
 void AST_UnaryMinus::print(std::ostream &os, SymbolTable *symbol_table,
                            bool              is_left,
                            std::vector<bool> is_left_history) const

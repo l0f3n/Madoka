@@ -32,6 +32,8 @@ struct Token
         DoubleEquals,
         GreaterThan,
         GreaterThanOrEqual,
+        False,
+        True,
 
         // Keywords
         Function,

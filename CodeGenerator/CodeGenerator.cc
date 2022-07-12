@@ -19,23 +19,31 @@ CodeGenerator::CodeGenerator(std::ostream &out, SymbolTable *symbol_table)
 
 void CodeGenerator::generate_predefined_functions() const
 {
-    // NOTE: Generate a function that can be called that in turn calls the
-    // function __print defined in "print.asm"
-    FunctionSymbol *print = symbol_table->get_function_symbol(
-        symbol_table->lookup_symbol("print#1"));
-
+    // NOTE: Print integer
+    FunctionSymbol *print =
+        symbol_table->get_function_symbol(symbol_table->lookup_symbol(
+            "print#" + std::to_string(symbol_table->type_integer)));
     generate_function_prologue(print);
-
-    std::string a1 = address(symbol_table->lookup_symbol("message"));
+    std::string a1 = address(print->first_parameter);
     operation("mov rax, [" + a1 + "]");
-
     // TODO: When we call print, we want it to automatically call the correct
     // function for printing an integer, a real, a bool or a string. In other
     // words, some sort of function overloading.
     operation("call __print_integer");
-
     out << std::endl;
+    generate_function_epilogue(print);
 
+    // NOTE: Print bool
+    print = symbol_table->get_function_symbol(symbol_table->lookup_symbol(
+        "print#" + std::to_string(symbol_table->type_bool)));
+    generate_function_prologue(print);
+    std::string a2 = address(print->first_parameter);
+    operation("mov rax, [" + a2 + "]");
+    // TODO: When we call print, we want it to automatically call the correct
+    // function for printing an integer, a real, a bool or a string. In other
+    // words, some sort of function overloading.
+    operation("call __print_bool");
+    out << std::endl;
     generate_function_epilogue(print);
 }
 
@@ -59,20 +67,19 @@ std::string CodeGenerator::address(int symbol_index) const
 {
     ASSERT(symbol_index != -1);
 
-    Symbol         *symbol = symbol_table->get_symbol(symbol_index);
+    Symbol *symbol = symbol_table->get_symbol(symbol_index);
+
     FunctionSymbol *function =
         symbol_table->get_function_symbol(symbol_table->enclosing_scope());
 
     // NOTE: Right now, we don't support defining functions inside other
     // functions, so we can only access variables in the current scope
     // ASSERT(symbol->level - 1 == function->level);
-    if (symbol->level - 1 != function->level)
+    if (symbol->tag == Symbol::Tag::Variable &&
+        symbol->level - 1 != function->level)
     {
-        symbol_table->print(std::cout);
-        std::cout << std::endl;
-
-        std::cout << *symbol << std::endl;
-        std::cout << *function << std::endl;
+        report_internal_compiler_error(
+            "Cannot access variable in enclosing scope");
     }
 
     int offset;
@@ -90,6 +97,9 @@ std::string CodeGenerator::address(int symbol_index) const
     {
         ParameterSymbol *parameter =
             symbol_table->get_parameter_symbol(symbol_index);
+
+        FunctionSymbol *function =
+            symbol_table->get_function_symbol(parameter->function);
 
         // NOTE: The parameters to a function gets pushed onto the stack before
         // it is called, so we can access them at the top of the prevoius

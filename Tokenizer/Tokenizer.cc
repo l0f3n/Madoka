@@ -351,6 +351,14 @@ Token Tokenizer::tokenize_next_token()
         {
             return create_token(Token::Kind::For, text);
         }
+        else if (text == "true")
+        {
+            return create_token(Token::Kind::True, text, 1L);
+        }
+        else if (text == "false")
+        {
+            return create_token(Token::Kind::False, text, 0L);
+        }
         else
         {
             return create_token(Token::Kind::Identifier, text);

@@ -208,7 +208,10 @@ int SymbolTable::insert_parameter(Location const    &location,
     parameter_symbol->tag  = Symbol::Tag::Parameter;
     parameter_symbol->type = type;
 
-    FunctionSymbol *function_symbol = get_function_symbol(enclosing_scope());
+    parameter_symbol->function = enclosing_scope();
+
+    FunctionSymbol *function_symbol =
+        get_function_symbol(parameter_symbol->function);
 
     if (function_symbol->first_parameter == -1)
     {

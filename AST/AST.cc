@@ -176,6 +176,10 @@ AST_Real::AST_Real(Location const location, double value)
     : AST_Node(location), value{value}
 {}
 
+AST_Bool::AST_Bool(Location const, bool value)
+    : AST_Node(location), value{value}
+{}
+
 AST_UnaryMinus::AST_UnaryMinus(Location const location, AST_Expression *expr)
     : AST_Node(location), expr{expr}
 {}

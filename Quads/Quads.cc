@@ -162,6 +162,14 @@ int AST_Real::generate_quads(Quads *quads) const
     return -1;
 }
 
+int AST_Bool::generate_quads(Quads *quads) const
+{
+    int type = quads->symbol_table->type_bool;
+    int dest = quads->symbol_table->generate_temporary_variable(type);
+    quads->add_quad(new Quad{Quad::Operation::I_STORE, value, -1, dest});
+    return dest;
+}
+
 int AST_UnaryMinus::generate_quads(Quads *quads) const
 {
     // TODO: We probably need to handle integers and reals differently, since

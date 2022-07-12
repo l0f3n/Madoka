@@ -342,6 +342,11 @@ int AST_Real::type_check(TypeChecker *type_checker) const
     return type_checker->symbol_table->type_real;
 }
 
+int AST_Bool::type_check(TypeChecker *type_checker) const
+{
+    return type_checker->symbol_table->type_bool;
+}
+
 int AST_UnaryMinus::type_check(TypeChecker *type_checker) const
 {
     int type = expr->type_check(type_checker);

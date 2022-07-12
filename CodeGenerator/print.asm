@@ -74,4 +74,48 @@ _print_chars:
 
 	ret
 
+__print_bool:
+	;; Put the values 0 or 1 in rax to print them
+
+	mov rcx, printArea 			; Load beginning of printArea
+
+	cmp	rax, 0
+	je _store_false
+
+_store_true:
+
+	mov [rcx], dword 'true'
+
+	add rcx, 4					; Move forward as many bytes as we wrote
+	mov rdx, 5					; We want to print 'true\n', length = 5
+
+	jmp _print_bool_chars
+
+_store_false:
+
+	mov [rcx], dword 'fals'
+	add rcx, 4					; Move forward as many bytes as we wrote
+
+	mov [rcx], byte 'e'
+	add rcx, 1					; Move forward as many bytes as we wrote
+
+	mov rdx, 6					; We want to print 'false\n', length = 6
+
+_print_bool_chars:
+
+	mov rbx, 10					; Load newline
+	mov [rcx], rbx				; Store newline at beginning of printArea
+
+	inc rcx
+
+	;;  Write syscall
+	mov rax, 0x1
+	mov rdi, 0x1
+	mov rsi, printArea
+	;; rdx is set previously, depending on true or false
+	syscall
+
+	ret
+
+
 ;; ===== end print.asm =====

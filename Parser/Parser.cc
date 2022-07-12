@@ -76,17 +76,26 @@ AST_Node *Parser::parse()
 
     Location no_location{-1, -1, -1, -1};
 
-    // TODO: Later, we probably want to add a general syscall function, but this
-    // is okay for now
-    symbol_table->insert_function(no_location, "print#1");
-    symbol_table->open_scope();
+    // NOTE: Here we create all the callable print functions for the various
+    // types
 
+    // NOTE: Print integer
+    symbol_table->insert_function(
+        no_location, "print#" + std::to_string(symbol_table->type_integer));
+    symbol_table->open_scope();
     symbol_table->insert_parameter(no_location, "message",
                                    symbol_table->type_integer);
+    symbol_table->close_scope();
+
+    // NOTE: Print bool
+    symbol_table->insert_function(
+        no_location, "print#" + std::to_string(symbol_table->type_bool));
+    symbol_table->open_scope();
+    symbol_table->insert_parameter(no_location, "message",
+                                   symbol_table->type_bool);
+    symbol_table->close_scope();
 
     code_generator.generate_predefined_functions();
-
-    symbol_table->close_scope();
 
     AST_Node *expr = parse_statement_list();
 
@@ -438,6 +447,8 @@ AST_ExpressionList *Parser::parse_optional_argument_list()
     case Token::Kind::Minus:
     case Token::Kind::Integer:
     case Token::Kind::Real:
+    case Token::Kind::True:
+    case Token::Kind::False:
     case Token::Kind::Identifier:
     case Token::Kind::LeftParentheses:
     {
@@ -609,6 +620,8 @@ AST_Expression *Parser::parse_optional_expression()
     case Token::Kind::Identifier:
     case Token::Kind::Integer:
     case Token::Kind::Real:
+    case Token::Kind::True:
+    case Token::Kind::False:
     case Token::Kind::Minus:
     case Token::Kind::LeftParentheses:
     {
@@ -646,6 +659,16 @@ AST_Expression *Parser::parse_term()
     {
         Token token_real = tokenizer.eat();
         return new AST_Real(token_real.location, token_real.real_value);
+    }
+    else if (tokenizer.peek(1).kind == Token::Kind::True)
+    {
+        Token token_true = tokenizer.eat();
+        return new AST_Bool(token_true.location, token_true.integer_value);
+    }
+    else if (tokenizer.peek(1).kind == Token::Kind::False)
+    {
+        Token token_false = tokenizer.eat();
+        return new AST_Bool(token_false.location, token_false.integer_value);
     }
     else if (tokenizer.peek(1).kind == Token::Kind::Identifier)
     {
@@ -718,7 +741,11 @@ AST_FunctionCall *Parser::parse_function_call()
 
     if (symbol_index == -1)
     {
-        std::string args = arguments->get_debug_type_string(&type_checker);
+        std::string args{""};
+        if (arguments != nullptr)
+        {
+            args = arguments->get_debug_type_string(&type_checker);
+        }
 
         report_parse_error(tok_name.location,
                            "No function found matching call signature '" +

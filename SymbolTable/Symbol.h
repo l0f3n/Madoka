@@ -59,6 +59,7 @@ class ParameterSymbol : public Symbol
   public:
     ParameterSymbol(Location const &location, const std::string &name);
 
+    int function{-1};
     int index{-1};
     int next_parameter{-1};
 };

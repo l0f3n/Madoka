@@ -65,7 +65,12 @@ std::ostream &operator<<(std::ostream &os, Token::Kind const &k)
     case Token::Kind::Multiplication: return os << "Multiplication";
     case Token::Kind::Division: return os << "Division";
     case Token::Kind::GreaterThan: return os << "GreaterThan";
+    case Token::Kind::GreaterThanOrEqual: return os << "GreaterThanOrEqual";
     case Token::Kind::LesserThan: return os << "LesserThan";
+    case Token::Kind::LesserThanOrEqual: return os << "LesserThanOrEqual";
+    case Token::Kind::DoubleEquals: return os << "DoubleEquals";
+    case Token::Kind::True: return os << "True";
+    case Token::Kind::False: return os << "False";
     case Token::Kind::Equals: return os << "Equals";
     case Token::Kind::Function: return os << "Function";
     case Token::Kind::Return: return os << "Return";
