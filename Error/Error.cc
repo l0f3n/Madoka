@@ -1,10 +1,5 @@
 #include "Error.h"
 
-std::ostream &error(Location const &location)
-{
-    return std::cout << "SyntaxError:" << location << ": ";
-}
-
 void report_internal_compiler_error(const std::string message)
 {
     std::cout << "InternalCompilerError: " << message << std::endl;
@@ -41,14 +36,4 @@ void report_type_error(Location const &location, std::string const message)
 {
     std::cout << "TypeError:" << location << ": " << message << std::endl;
     std::exit(1);
-}
-
-std::ostream &type_error(Location const &location)
-{
-    return std::cout << "TypeError:" << location << ": ";
-}
-
-std::ostream &internal_compiler_error()
-{
-    return std::cout << "InternalCompilerError: ";
 }

@@ -21,8 +21,8 @@ void CodeGenerator::generate_predefined_functions() const
 {
     // NOTE: Generate a function that can be called that in turn calls the
     // function __print defined in "print.asm"
-    FunctionSymbol *print =
-        symbol_table->get_function_symbol(symbol_table->lookup_symbol("print"));
+    FunctionSymbol *print = symbol_table->get_function_symbol(
+        symbol_table->lookup_symbol("print#1"));
 
     generate_function_prologue(print);
 
@@ -249,8 +249,7 @@ void CodeGenerator::generate_code(Quads &quads)
         }
         case Quad::Operation::I_DIVISION:
         {
-            // TODO: If one of the operands are negative, we need to do
-            // something about it
+            // TODO: If operand1 is negative, we get floating point exception
             operation("mov rdx, 0");
             load("rax", quad->operand1);
             load("rbx", quad->operand2);
@@ -261,7 +260,8 @@ void CodeGenerator::generate_code(Quads &quads)
         }
         case Quad::Operation::UNARY_MINUS:
         {
-            // NOTE: Integers are stored as twos complement
+            // NOTE: Integers are stored as twos complement, so we invert and
+            // add one to make it the negataive version of itself
             load("rax", quad->operand1);
             operation("not rax");
             operation("add rax, 1");

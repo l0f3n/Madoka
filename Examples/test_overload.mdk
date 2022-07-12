@@ -1,0 +1,21 @@
+function overload() -> int
+{
+    return 1
+}
+
+function overload(a: int) -> int
+{
+    return 2
+}
+
+function overload(a: int, b: int) -> int
+{
+    return 3
+}
+
+function main()
+{
+    print(overload())
+    print(overload(0))
+    print(overload(0, 0))
+}

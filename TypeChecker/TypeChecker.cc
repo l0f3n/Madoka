@@ -16,6 +16,10 @@ void TypeChecker::type_check_arguments(AST_FunctionCall const *function_call,
                                        int                     parameter_index,
                                        AST_ExpressionList     *arguments)
 {
+    // TODO: This function is probably obsolete now that we have function
+    // overloading. If it finds the right function it always has the correct
+    // number of arguments. All these checks is thus uneccessary.
+
     if (parameter_index == -1 && arguments == nullptr)
     {
         // NOTE: If both arguments and parameters stop at the same time there is
@@ -237,6 +241,33 @@ int AST_ExpressionList::type_check(TypeChecker *type_checker) const
     report_internal_compiler_error(
         "AST_ExpressionList::type_check() should not be called");
     return -1;
+}
+
+std::string AST_ExpressionList::get_type_string(TypeChecker *type_checker) const
+{
+    std::string str =
+        "#" + std::to_string(expression->type_check(type_checker));
+
+    if (rest_expressions != nullptr)
+    {
+        str += rest_expressions->get_type_string(type_checker);
+    }
+
+    return str;
+}
+
+std::string
+AST_ExpressionList::get_debug_type_string(TypeChecker *type_checker) const
+{
+    int         type = expression->type_check(type_checker);
+    std::string str  = type_checker->symbol_table->get_name(type);
+
+    if (rest_expressions != nullptr)
+    {
+        str += ", " + rest_expressions->get_debug_type_string(type_checker);
+    }
+
+    return str;
 }
 
 int AST_StatementList::type_check(TypeChecker *type_checker) const

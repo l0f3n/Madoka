@@ -37,9 +37,18 @@ SymbolTable::~SymbolTable()
 
 void SymbolTable::print(std::ostream &os)
 {
+    std::cout << "Symbol table: " << std::endl;
     for (int i{0}; i <= current_symbol_index; i++)
     {
         os << i << ": " << *symbol_table[i] << std::endl;
+    }
+
+    std::cout << std::endl;
+
+    std::cout << "Block table: " << std::endl;
+    for (int i{0}; i <= current_level; i++)
+    {
+        os << i << ": " << block_table[i] << std::endl;
     }
 }
 
@@ -47,9 +56,8 @@ int SymbolTable::generate_temporary_variable(int type)
 {
     if (type == type_void)
     {
-        internal_compiler_error()
-            << "Cannot generate a temporary variable of type void" << std::endl;
-        std::exit(1);
+        report_internal_compiler_error(
+            "Cannot generate a temporary variable of type void");
     }
 
     std::ostringstream oss{};
@@ -60,6 +68,33 @@ int SymbolTable::generate_temporary_variable(int type)
 
 int SymbolTable::get_next_label() { return ++current_label_number; }
 
+void SymbolTable::update_name(int index, std::string const &name)
+{
+    int found_index = lookup_symbol(name);
+
+    if (found_index != -1 &&
+        ((symbol_table[found_index]->level == current_level) ||
+         symbol_table[found_index]->tag == Symbol::Tag::Type))
+    {
+        // TODO: Better error message
+        report_parse_error(no_location, "Better error message");
+    }
+
+    Symbol *symbol = get_symbol(index);
+
+    remove_symbol(index);
+
+    symbol->name = name;
+
+    int previous_index             = hash_table[hash(symbol->name)];
+    hash_table[hash(symbol->name)] = index;
+
+    if (previous_index != -1)
+    {
+        symbol->hash_link = previous_index;
+    }
+}
+
 int SymbolTable::insert_type(Location const &location, const std::string &name,
                              int size)
 {
@@ -69,9 +104,12 @@ int SymbolTable::insert_type(Location const &location, const std::string &name,
 
     if (symbol->tag != Symbol::Tag::Undefined)
     {
-        error(location) << "Type '" << name << "' already defined at "
-                        << symbol->location << std::endl;
-        std::exit(1);
+        // TODO: This is a mess
+        std::ostringstream oss{};
+        oss << symbol->location;
+
+        report_parse_error(location, "Type '" + name + "' already defined at " +
+                                         oss.str());
     }
 
     TypeSymbol *type_symbol = get_type_symbol(symbol_index);
@@ -92,10 +130,13 @@ int SymbolTable::insert_variable(Location const    &location,
 
     if (symbol->tag != Symbol::Tag::Undefined)
     {
-        error(location) << "Variable '" << name << "' already defined at "
-                        << symbol->location << std::endl;
+        // TODO: This is ALSO a mess
+        std::ostringstream oss{};
+        oss << symbol->location;
 
-        std::exit(1);
+        report_parse_error(location, "Variable '" + name +
+                                         "' already defined at " + oss.str());
+
         return symbol_index;
     }
 
@@ -122,9 +163,11 @@ int SymbolTable::insert_function(Location const    &location,
 
     if (symbol->tag != Symbol::Tag::Undefined)
     {
-        error(location) << "Function '" << name << "' already defined at "
-                        << symbol->location << std::endl;
-        std::exit(1);
+        std::ostringstream oss{};
+        oss << symbol->location;
+
+        report_parse_error(location, "Function '" + name +
+                                         "' already defined at " + oss.str());
     }
 
     FunctionSymbol *function_symbol = get_function_symbol(symbol_index);
@@ -149,9 +192,15 @@ int SymbolTable::insert_parameter(Location const    &location,
 
     if (symbol->tag != Symbol::Tag::Undefined)
     {
-        error(location) << "Parameter'" << name << "' already defined at "
-                        << symbol->location << std::endl;
-        std::exit(1);
+
+        // TODO: This is ALSO a mess
+        std::ostringstream oss{};
+        oss << symbol->location;
+
+        report_parse_error(location, "Parameter '" + name +
+                                         "' already defined at " + oss.str());
+
+        return symbol_index;
     }
 
     ParameterSymbol *parameter_symbol = get_parameter_symbol(symbol_index);
@@ -171,6 +220,11 @@ int SymbolTable::insert_parameter(Location const    &location,
         // NOTE: Otherwise we have to iterate through every parameter and set
         // this newly added parameter to the next parameter of the previous
         // last parameter
+
+        // TODO: We always, without exception, insert the parameters in order.
+        // So the previous parameter is always the previous index. Using that
+        // would be much faster.
+
         ParameterSymbol *parameter =
             get_parameter_symbol(function_symbol->first_parameter);
 
@@ -191,17 +245,24 @@ int SymbolTable::insert_parameter(Location const    &location,
 int SymbolTable::insert_symbol(Location const    &location,
                                std::string const &name, Symbol::Tag tag)
 {
-    int symbol_index = lookup_symbol(name);
-
-    if (symbol_index != -1 &&
-        ((symbol_table[symbol_index]->level == current_level) ||
-         symbol_table[symbol_index]->tag == Symbol::Tag::Type))
+    // NOTE: Functions get renamed with their parameters after being inserted
+    // using just their name. So right when inserting they will clash, but
+    // won't after the rename. This means that we can't check for name
+    // collisions for functions right here.
+    if (tag != Symbol::Tag::Function)
     {
-        // NOTE: A symbol with the same name already exists on the same
-        // level, so instead of creating a new one we return the already
-        // defined one and let the caller handle it. Also, you can never use
-        // the same name as a type, regardless of its level.
-        return symbol_index;
+        int symbol_index = lookup_symbol(name);
+
+        if (symbol_index != -1 &&
+            ((symbol_table[symbol_index]->level == current_level) ||
+             symbol_table[symbol_index]->tag == Symbol::Tag::Type))
+        {
+            // NOTE: A symbol with the same name already exists on the same
+            // level, so instead of creating a new one we return the already
+            // defined one and let the caller handle it. Also, you can never use
+            // the same name as a type, regardless of its level.
+            return symbol_index;
+        }
     }
 
     Symbol *symbol;
@@ -230,9 +291,12 @@ int SymbolTable::insert_symbol(Location const    &location,
     }
     default:
     {
-        internal_compiler_error() << " Unhandled symbol tag '" << tag
-                                  << "' in insert_symbol()" << std::endl;
-        std::exit(1);
+        // TODO: This is also a mess
+        std::ostringstream oss{};
+        oss << tag;
+
+        report_internal_compiler_error(" Unhandled symbol tag '" + oss.str() +
+                                       "' in insert_symbol()");
     }
     }
 

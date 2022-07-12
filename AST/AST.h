@@ -128,6 +128,9 @@ class AST_ExpressionList : public AST_Node
     int generate_quads(Quads *quads) const override;
     int generate_quads_parameter_list(Quads *quads) const;
 
+    std::string get_type_string(TypeChecker *type_checker) const;
+    std::string get_debug_type_string(TypeChecker *type_checker) const;
+
     AST_Expression     *expression;
     AST_ExpressionList *rest_expressions;
 };

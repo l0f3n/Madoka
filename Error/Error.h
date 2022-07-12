@@ -17,10 +17,6 @@
 #define ASSERT(condition)
 #endif
 
-std::ostream &error(Location const &location);
-std::ostream &type_error(Location const &location);
-std::ostream &internal_compiler_error();
-
 void report_internal_compiler_error(std::string const message);
 
 void report_parse_error(Location const &location, std::string const message);

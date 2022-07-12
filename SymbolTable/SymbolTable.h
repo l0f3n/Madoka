@@ -33,8 +33,9 @@ class SymbolTable
 
     int enclosing_scope() const;
 
-    int generate_temporary_variable(int type);
-    int get_next_label();
+    int  generate_temporary_variable(int type);
+    int  get_next_label();
+    void update_name(int, std::string const &);
 
     void print(std::ostream &os);
 

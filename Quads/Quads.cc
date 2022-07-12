@@ -141,9 +141,7 @@ std::ostream &operator<<(std::ostream &os, Quad::Operation const &op)
 
 int AST_Node::generate_quads(Quads *quads) const
 {
-    internal_compiler_error()
-        << "Call to AST_Node::generate_quads()" << std::endl;
-    std::exit(1);
+    report_internal_compiler_error("Call to AST_Node::generate_quads()");
     return -1;
 }
 

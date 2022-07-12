@@ -9,7 +9,7 @@ StatementList ->   Statement StatementList
  
 Statement ->   IDENTIFIER ':' IDENTIFIER '=' Expression
              | IDENTIFIER '=' Expression
-             | IDENTIFIER '(' OptionalArgumentList ')'
+             | FunctionCall
              | 'return' OptionalExpression
              | 'function' IDENTIFIER '(' OptionalParameterList ')' OptionalReturn '{' StatementList '}'
              | 'if' '(' Expression ')' '{' StatementList '}'
@@ -35,9 +35,11 @@ Expression ->   MinusTerm '+' Expression
               | MinusTerm '-' Expression
               | MinusTerm '*' Expression
               | MinusTerm '/' Expression
-              | MinusTerm '=' Expression
+              | MinusTerm '==' Expression
               | MinusTerm '<' Expression
+              | MinusTerm '<=' Expression
               | MinusTerm '>' Expression
+              | MinusTerm '>=' Expression
               | MinusTerm
 
 OptionalExpression ->   Expression
@@ -49,6 +51,8 @@ MinusTerm ->   '-' Term
 Term ->   INTEGER
         | REAL
         | IDENTIFIER
-        | IDENTIFIER '(' OptionalArgumentList ')'
+        | FunctionCall
         | '(' Expression ')'
+
+FunctionCall -> IDENTIFIER '(' OptionalArgumentList ')'
 ```

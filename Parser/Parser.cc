@@ -78,7 +78,7 @@ AST_Node *Parser::parse()
 
     // TODO: Later, we probably want to add a general syscall function, but this
     // is okay for now
-    symbol_table->insert_function(no_location, "print");
+    symbol_table->insert_function(no_location, "print#1");
     symbol_table->open_scope();
 
     symbol_table->insert_parameter(no_location, "message",
@@ -160,7 +160,6 @@ AST_StatementList *Parser::parse_statement_list()
     }
     }
 
-    // TODO: For some reason we only get the first statement
     return new AST_StatementList(statement->location, statement,
                                  statement_list);
 }
@@ -171,13 +170,13 @@ AST_Statement *Parser::parse_statement()
     {
     case Token::Kind::Identifier:
     {
-        Token name_token = tokenizer.eat();
-
-        switch (tokenizer.peek(1).kind)
+        switch (tokenizer.peek(2).kind)
         {
         // Definition
         case Token::Kind::Colon:
         {
+            Token name_token = tokenizer.eat();
+
             tokenizer.eat();
 
             Token type_token = expect(Token::Kind::Identifier);
@@ -193,16 +192,15 @@ AST_Statement *Parser::parse_statement()
 
             if (type_index == -1)
             {
-                error(type_token.location)
-                    << "Unknown type '" << type_token.text << "'" << std::endl;
-                std::exit(1);
+                report_parse_error(type_token.location,
+                                   "Unknown type '" + type_token.text + "'");
             }
             else if (symbol_table->get_symbol(type_index)->tag !=
                      Symbol::Tag::Type)
             {
-                error(type_token.location) << "Symbol '" << type_token.text
-                                           << "' is not a type" << std::endl;
-                std::exit(1);
+                report_parse_error(type_token.location, "Symbol '" +
+                                                            type_token.text +
+                                                            "' is not a type");
             }
 
             int symbol_index = symbol_table->insert_variable(
@@ -217,6 +215,8 @@ AST_Statement *Parser::parse_statement()
         // Assignment
         case Token::Kind::Equals:
         {
+            Token name_token = tokenizer.eat();
+
             tokenizer.eat();
 
             int symbol_index = symbol_table->lookup_symbol(name_token.text);
@@ -237,31 +237,7 @@ AST_Statement *Parser::parse_statement()
         // Function call
         case Token::Kind::LeftParentheses:
         {
-            tokenizer.eat();
-
-            AST_ExpressionList *arguments = parse_optional_argument_list();
-
-            expect(Token::Kind::RightParentheses);
-
-            int symbol_index = symbol_table->lookup_symbol(name_token.text);
-
-            if (symbol_index == -1)
-            {
-                report_parse_error_undefined_reference(name_token);
-            }
-            else if (symbol_table->get_symbol(symbol_index)->tag !=
-                     Symbol::Tag::Function)
-            {
-                error(name_token.location)
-                    << "Symbol '" << name_token.text << "' is not a function"
-                    << std::endl;
-                std::exit(1);
-            }
-
-            AST_Identifier *name =
-                new AST_Identifier(name_token.location, symbol_index);
-
-            return new AST_FunctionCall(name_token.location, name, arguments);
+            return parse_function_call();
         }
         default:
         {
@@ -278,6 +254,7 @@ AST_Statement *Parser::parse_statement()
         // TODO: We need to handle the case where there are multiple branching
         // paths in the body, and check if every path has a return. But we
         // haven't implemented If statements yet.
+
         FunctionSymbol *function =
             symbol_table->get_function_symbol(symbol_table->enclosing_scope());
 
@@ -306,6 +283,33 @@ AST_Statement *Parser::parse_statement()
 
         expect(Token::Kind::RightParentheses);
 
+        // NOTE: We have finished parsing the parameters and are ready to update
+        // the name of the function to include those parameters
+
+        FunctionSymbol *function =
+            symbol_table->get_function_symbol(symbol_index);
+
+        std::ostringstream oss{};
+        oss << function->name;
+
+        if (function->first_parameter != -1)
+        {
+
+            ParameterSymbol *parameter =
+                symbol_table->get_parameter_symbol(function->first_parameter);
+
+            oss << "#" << parameter->type;
+
+            while (parameter->next_parameter != -1)
+            {
+                parameter = symbol_table->get_parameter_symbol(
+                    parameter->next_parameter);
+                oss << "#" << parameter->type;
+            }
+        }
+
+        symbol_table->update_name(symbol_index, oss.str());
+
         AST_Identifier *return_type = parse_optional_return();
 
         // NOTE: The default return type is void, but if we find an explicit
@@ -332,6 +336,7 @@ AST_Statement *Parser::parse_statement()
         // NOTE: After we parse a function definition, we do all the interesting
         // stuff!
         // function_definition->print(std::cout, symbol_table, false, {});
+        // symbol_table->print(std::cout);
         type_checker.type_check(function_definition);
         quads.generate_quads(function_definition);
         code_generator.generate_code(quads);
@@ -517,9 +522,8 @@ AST_Identifier *Parser::parse_parameter()
     }
     else if (type_symbol->tag != Symbol::Tag::Type)
     {
-        error(type.location)
-            << "Symbol '" << type.text << "' is not a type" << std::endl;
-        std::exit(1);
+        report_parse_error(type.location,
+                           "Symbol '" + type.text + "' is not a type");
     }
 
     int symbol_index =
@@ -645,51 +649,34 @@ AST_Expression *Parser::parse_term()
     }
     else if (tokenizer.peek(1).kind == Token::Kind::Identifier)
     {
-        Token name = tokenizer.eat();
-
-        int symbol_index = symbol_table->lookup_symbol(name.text);
-
-        if (symbol_index == -1)
+        if (tokenizer.peek(2).kind == Token::Kind::LeftParentheses)
         {
-            report_parse_error_undefined_reference(name);
+            return parse_function_call();
         }
 
-        AST_Identifier *ident = new AST_Identifier(name.location, symbol_index);
-
-        // NOTE: If we find a left parentheses here, we try to parse a function
-        if (tokenizer.peek(1).kind == Token::Kind::LeftParentheses)
-        {
-            expect(Token::Kind::LeftParentheses);
-
-            AST_ExpressionList *arguments = parse_optional_argument_list();
-
-            expect(Token::Kind::RightParentheses);
-
-            Symbol *symbol = symbol_table->get_symbol(symbol_index);
-
-            if (symbol->tag != Symbol::Tag::Function)
-            {
-                error(symbol->location) << "Symbol '" << symbol->name
-                                        << "' is not a function" << std::endl
-                                        << std::endl;
-                std::exit(1);
-            }
-
-            return new AST_FunctionCall(name.location, ident, arguments);
-        }
-        // NOTE: Otherwise, we assume it was just an identifier
+        // NOTE: We assume it was just an identifier
         else
         {
+            Token name = tokenizer.eat();
+
+            int symbol_index = symbol_table->lookup_symbol(name.text);
+
+            if (symbol_index == -1)
+            {
+                report_parse_error_undefined_reference(name);
+            }
+
+            AST_Identifier *ident =
+                new AST_Identifier(name.location, symbol_index);
+
             Symbol *symbol = symbol_table->get_symbol(symbol_index);
 
             if (symbol->tag != Symbol::Tag::Variable &&
                 symbol->tag != Symbol::Tag::Parameter)
             {
-                error(name.location)
-                    << "Symbol '" << symbol->name
-                    << "' is not a variable or parameter" << std::endl
-                    << std::endl;
-                std::exit(1);
+                report_parse_error(name.location,
+                                   "Symbol '" + symbol->name +
+                                       "' is not a variable or parameter");
             }
 
             return ident;
@@ -707,4 +694,46 @@ AST_Expression *Parser::parse_term()
         report_parse_error_unexpected_token(tokenizer.peek(1));
         return nullptr;
     }
+}
+
+AST_FunctionCall *Parser::parse_function_call()
+{
+    Token tok_name = expect(Token::Kind::Identifier);
+
+    expect(Token::Kind::LeftParentheses);
+
+    AST_ExpressionList *arguments = parse_optional_argument_list();
+
+    expect(Token::Kind::RightParentheses);
+
+    std::string type_string = "";
+    if (arguments != nullptr)
+    {
+        type_string = arguments->get_type_string(&type_checker);
+    }
+
+    std::string name = tok_name.text + type_string;
+
+    int symbol_index = symbol_table->lookup_symbol(name);
+
+    if (symbol_index == -1)
+    {
+        std::string args = arguments->get_debug_type_string(&type_checker);
+
+        report_parse_error(tok_name.location,
+                           "No function found matching call signature '" +
+                               tok_name.text + "(" + args + ")'");
+    }
+
+    AST_Identifier *ident = new AST_Identifier(tok_name.location, symbol_index);
+
+    Symbol *symbol = symbol_table->get_symbol(symbol_index);
+
+    if (symbol->tag != Symbol::Tag::Function)
+    {
+        report_parse_error(symbol->location,
+                           "Symbol '" + symbol->name + "' is not a function");
+    }
+
+    return new AST_FunctionCall(tok_name.location, ident, arguments);
 }

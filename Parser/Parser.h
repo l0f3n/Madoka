@@ -24,6 +24,7 @@ class Parser
     AST_Statement     *parse_statement();
 
     // Function call
+    AST_FunctionCall   *parse_function_call();
     AST_ExpressionList *parse_optional_argument_list();
     AST_ExpressionList *parse_argument_list();
 

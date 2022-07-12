@@ -20,12 +20,12 @@ class Symbol
     Symbol(Location const &location, const std::string &name);
     virtual ~Symbol();
 
-    Location const    location{Location{-1, -1, -1, -1}};
-    std::string const name{""};
-    Tag               tag{Symbol::Tag::Undefined};
-    int               type{0}; // We add void first so 0 means void
-    int               level{-1};
-    int               hash_link{-1};
+    Location    location{Location{-1, -1, -1, -1}};
+    std::string name{""};
+    Tag         tag{Symbol::Tag::Undefined};
+    int         type{0}; // We add void first so 0 means void
+    int         level{-1};
+    int         hash_link{-1};
 
     friend std::ostream &operator<<(std::ostream &os, Symbol &symbol);
 };
