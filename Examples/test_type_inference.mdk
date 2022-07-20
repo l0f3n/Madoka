@@ -1,0 +1,19 @@
+function test() -> int
+{
+    return 3
+}
+
+function main()
+{
+    a := 1
+    print(a)
+
+    b := 1 + a
+    print(b)
+
+    c := test()
+    print(c)
+
+    d: int = c + 1
+    print(d)
+}

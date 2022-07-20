@@ -22,7 +22,7 @@
  - [x] Comments: 
  - [x] - Inline comment
  - [x] - Multiline comment 
- - [ ] Automatic type inference
+ - [x] Automatic type inference
 
 ## Built-in types
  
@@ -34,4 +34,5 @@
 ## Refactor
 
  - [ ] Replace raw pointers with unique_ptr<> and optional<> 
+ - [ ] Enable all compiler warnings/errors 
  

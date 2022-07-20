@@ -184,32 +184,44 @@ AST_Statement *Parser::parse_statement()
         // Definition
         case Token::Kind::Colon:
         {
-            Token name_token = tokenizer.eat();
+            Token name_token = expect(Token::Kind::Identifier);
 
-            tokenizer.eat();
+            expect(Token::Kind::Colon);
 
-            Token type_token = expect(Token::Kind::Identifier);
+            int type_index = symbol_table->type_void;
+
+            if (tokenizer.peek(1).kind == Token::Kind::Identifier)
+            {
+                Token type_token = expect(Token::Kind::Identifier);
+                type_index       = symbol_table->lookup_symbol(type_token.text);
+
+                if (type_index == -1)
+                {
+                    report_parse_error(type_token.location,
+                                       "Unknown type '" + type_token.text +
+                                           "'");
+                }
+                else if (symbol_table->get_symbol(type_index)->tag !=
+                         Symbol::Tag::Type)
+                {
+                    report_parse_error(type_token.location,
+                                       "Symbol '" + type_token.text +
+                                           "' is not a type");
+                }
+            }
 
             expect(Token::Kind::Equals);
 
             AST_Expression *expression = parse_expression();
 
-            // NOTE: We are done parsing the definition, now we can do
-            // all checks for correctness
-
-            int type_index = symbol_table->lookup_symbol(type_token.text);
-
-            if (type_index == -1)
+            if (type_index == symbol_table->type_void)
             {
-                report_parse_error(type_token.location,
-                                   "Unknown type '" + type_token.text + "'");
-            }
-            else if (symbol_table->get_symbol(type_index)->tag !=
-                     Symbol::Tag::Type)
-            {
-                report_parse_error(type_token.location, "Symbol '" +
-                                                            type_token.text +
-                                                            "' is not a type");
+                // TODO: This is really weird. If we don't have an explicit type
+                // we run the typechecker a little bit on the right hand side
+                // expression to figure out its type. This can trigger type
+                // errors too early and the code will run again when the type
+                // checker is run properly.
+                type_index = expression->type_check(&type_checker);
             }
 
             int symbol_index = symbol_table->insert_variable(

@@ -8,6 +8,7 @@ StatementList ->   Statement StatementList
                  | Statement 
  
 Statement ->   IDENTIFIER ':' IDENTIFIER '=' Expression
+             | IDENTIFIER ':' '=' Expression
              | IDENTIFIER '=' Expression
              | FunctionCall
              | 'return' OptionalExpression
