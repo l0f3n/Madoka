@@ -3,9 +3,7 @@
 #include <iostream>
 #include <string>
 
-Tokenizer::Tokenizer(std::istream &is)
-    : is{is}, line{1}, column{0}, begin_column{0}
-{}
+Tokenizer::Tokenizer(std::istream &is) : is{is} {}
 
 void Tokenizer::tokenize()
 {
@@ -13,7 +11,12 @@ void Tokenizer::tokenize()
     do
     {
         token = tokenize_next_token();
-        tokens.push_back(token);
+        if (!inline_comment && !multiline_comment &&
+            token.kind != Token::Kind::DoubleSemicolon)
+        {
+            tokens.push_back(token);
+        }
+
     } while (token.kind != Token::Kind::End);
 }
 
@@ -49,6 +52,7 @@ void Tokenizer::consume_whitespace()
         case '\n':
         {
             consume_next_char();
+            inline_comment = false;
             line++;
             column = 0;
             break;
@@ -290,6 +294,22 @@ Token Tokenizer::tokenize_next_token()
     {
         consume_next_char();
         return create_token(Token::Kind::Colon, ":");
+    }
+    case ';':
+    {
+        consume_next_char();
+
+        if (peek_next_char() == ';')
+        {
+            consume_next_char();
+            multiline_comment = !multiline_comment;
+            return create_token(Token::Kind::DoubleSemicolon, ";;");
+        }
+        else
+        {
+            inline_comment = true;
+            return create_token(Token::Kind::Semicolon, ";");
+        }
     }
     case ',':
     {

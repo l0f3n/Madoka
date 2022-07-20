@@ -54,6 +54,10 @@ struct Token
         Arrow,
         Pound,
 
+        // Comments
+        Semicolon,
+        DoubleSemicolon,
+
         // Special
         Unitialized,
         Unexpected,

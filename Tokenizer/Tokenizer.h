@@ -34,9 +34,12 @@ class Tokenizer
 
     std::istream &is;
 
-    int line;
-    int column;       // The next char we haven't consumed yet
-    int begin_column; // The start column of the current token
+    int line{1};
+    int column{0};       // The next char we haven't consumed yet
+    int begin_column{0}; // The start column of the current token
+
+    bool inline_comment{false};
+    bool multiline_comment{false};
 
     std::vector<Token> tokens{};
     int                token_index{-1};

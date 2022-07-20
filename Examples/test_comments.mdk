@@ -1,0 +1,14 @@
+function main()
+{
+    a: int = 3; This is an inline comment
+    print(a)
+
+    b: int = 4
+
+    ;;
+        This is a
+        multiline comment.
+    ;;
+
+    print(b)
+}

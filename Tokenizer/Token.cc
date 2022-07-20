@@ -86,6 +86,8 @@ std::ostream &operator<<(std::ostream &os, Token::Kind const &k)
     case Token::Kind::Comma: return os << "Comma";
     case Token::Kind::Arrow: return os << "Arrow";
     case Token::Kind::Pound: return os << "Pound";
+    case Token::Kind::Semicolon: return os << "Semicolon";
+    case Token::Kind::DoubleSemicolon: return os << "DoubleSemicolon";
     case Token::Kind::End: return os << "End";
     default: return os << "Unexpected";
     }
